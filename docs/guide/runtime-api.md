@@ -75,14 +75,29 @@ const buf = await res.arrayBuffer();
 
 以下路由开箱即用，无需注册：
 
-**摘要**
+**摘要（推荐）**
+- `crypto.md5`
+- `crypto.sha1`
+- `crypto.sha512`
+- `crypto.hmac_sha1`
+- `crypto.hmac_sha512`
+
+**摘要（旧版，已废弃）**
 - `crypto.md5_hex`
 - `crypto.sha1_hex`
 - `crypto.sha512_hex`
 - `crypto.hmac_sha1_hex`
 - `crypto.hmac_sha512_hex`
 
-**AES**
+**AES（推荐，输入输出均为原始字节）**
+- `crypto.aes_ecb_pkcs7_decrypt`
+- `crypto.aes_ecb_pkcs7_encrypt`
+- `crypto.aes_cbc_pkcs7_encrypt`
+- `crypto.aes_cbc_pkcs7_decrypt`
+- `crypto.aes_gcm_encrypt`
+- `crypto.aes_gcm_decrypt`
+
+**AES（旧版，已废弃）**
 - `crypto.aes_ecb_pkcs7_decrypt_b64`
 - `crypto.aes_cbc_pkcs7_encrypt_b64`
 - `crypto.aes_cbc_pkcs7_decrypt_b64`
@@ -162,7 +177,15 @@ crypto.timingSafeEqual(a, b)
 crypto.pbkdf2Sync(password, salt, iterations, keyLen, digest?)
 crypto.pbkdf2(password, salt, iterations, keyLen, digest?, callback)
 
-// AES 便捷包装
+// AES 便捷包装（推荐，输入输出为原始字节）
+crypto.aesEcbPkcs7Decrypt(input, keyRaw)
+crypto.aesEcbPkcs7Encrypt(input, keyRaw)
+crypto.aesCbcPkcs7Encrypt(input, keyRaw, ivRaw)
+crypto.aesCbcPkcs7Decrypt(input, keyRaw, ivRaw)
+crypto.aesGcmEncrypt(input, keyRaw, nonceRaw, aad?)
+crypto.aesGcmDecrypt(input, keyRaw, nonceRaw, aad?)
+
+// 旧版 base64 包装（已废弃，仍兼容）
 crypto.aesCbcPkcs7EncryptB64(payloadB64, keyRaw, ivRaw)
 crypto.aesCbcPkcs7DecryptB64(payloadB64, keyRaw, ivRaw)
 crypto.aesGcmEncryptB64(payloadB64, keyRaw, nonceRaw, aadB64?)
@@ -183,7 +206,8 @@ hash.digest(encoding?) → string | Buffer
 ### 说明
 
 - `pbkdf2`/`pbkdf2Sync` 目前固定走 sha256
-- ECB 模式只提供了解密路由（通过 bridge）
+- 新版 AES/摘要/HMAC API 输入输出均为原始字节（`Uint8Array`），不再内置 base64 编解码
+- 旧版 `_hex` / `_b64` API 仍保留兼容，但已废弃
 - CBC 和 GCM 同时提供了 `crypto.*` 包装和 bridge 路由
 
 ```js
@@ -191,10 +215,16 @@ hash.digest(encoding?) → string | Buffer
 const hash = crypto.createHash("sha256").update("text").digest("hex");
 const mac = crypto.createHmac("sha1", "key").update("text").digest("hex");
 
-// bridge 路由
-const md5 = await bridge.call("crypto.md5_hex", "text");
+// 新版 bridge 路由（推荐）
+const md5 = await bridge.call("crypto.md5", new TextEncoder().encode("text"));
 const decrypted = await bridge.call(
-  "crypto.aes_cbc_pkcs7_decrypt_b64", payload, key, iv,
+  "crypto.aes_cbc_pkcs7_decrypt", cipherBytes, key, iv,
+);
+
+// 旧版 bridge 路由（已废弃，仍兼容）
+const md5Old = await bridge.call("crypto.md5_hex", "text");
+const decryptedOld = await bridge.call(
+  "crypto.aes_cbc_pkcs7_decrypt_b64", payloadB64, key, iv,
 );
 ```
 
