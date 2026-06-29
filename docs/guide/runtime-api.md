@@ -30,8 +30,12 @@ Breeze 插件运行在 QuickJS-NG 引擎中，不是 Node.js 也不是浏览器�
 ```ts
 import { hostRuntime } from "../types/runtime-api";
 
-const md5 = await hostRuntime.crypto.md5("hello");
-const sha = hostRuntime.crypto.createHash("sha256").update("text").digest("hex");
+const encoder = new TextEncoder();
+const md5 = await hostRuntime.crypto.md5(encoder.encode("hello"));
+const sha = hostRuntime.crypto
+  .createHash("sha256")
+  .update(encoder.encode("text"))
+  .digest("hex");
 const key = hostRuntime.uuidv4();
 const data = await hostRuntime.gzipCompress(new Uint8Array([1, 2, 3]));
 ```
@@ -39,8 +43,12 @@ const data = await hostRuntime.gzipCompress(new Uint8Array([1, 2, 3]));
 等价地，你也可以直接操作全局对象：
 
 ```ts
-const md5 = await crypto.md5("hello");
-const sha = crypto.createHash("sha256").update("text").digest("hex");
+const encoder = new TextEncoder();
+const md5 = await crypto.md5(encoder.encode("hello"));
+const sha = crypto
+  .createHash("sha256")
+  .update(encoder.encode("text"))
+  .digest("hex");
 ```
 
 ## fetch
@@ -222,13 +230,22 @@ crypto.aesGcmDecryptB64(payloadB64, keyRaw, nonceRaw, aadB64?)
 
 - `pbkdf2` / `pbkdf2Sync` 目前固定走 sha256
 - 旧版 `_hex` / `_b64` API 因行为较为模糊，已废弃，不再建议使用
-- 新版 AES / 摘要 / HMAC API 输入输出均为原始字节（`Uint8Array` / `string`），不再内置 base64 编解码
+- 新版 AES / 摘要 / HMAC API **只接受原始二进制输入**（`Uint8Array` / `ArrayBuffer` / `ArrayBufferView` / `number[]`），不再接受字符串，也不再内置 base64 编解码
+  - 字符串请先用 `new TextEncoder().encode(string)` 或 `encodeUtf8(string)` 转换
+  - base64 请先用全局 `bytesFromBase64(b64)` 转换为 `Uint8Array`
 
 ```js
 // 推荐写法
-const hash = crypto.createHash("sha256").update("text").digest("hex");
-const hmac = crypto.createHmac("sha256", "key").update("text").digest("hex");
-const md5Hex = await crypto.md5("text");
+const encoder = new TextEncoder();
+const hash = crypto
+  .createHash("sha256")
+  .update(encoder.encode("text"))
+  .digest("hex");
+const hmac = crypto
+  .createHmac("sha256", encoder.encode("key"))
+  .update(encoder.encode("text"))
+  .digest("hex");
+const md5Hex = await crypto.md5(encoder.encode("text"));
 ```
 
 ## fs
@@ -336,15 +353,17 @@ const copy = structuredClone({ a: 1, b: [2, 3] });
 ```ts
 import { hostRuntime } from "../types/runtime-api";
 
+const encoder = new TextEncoder();
+
 // 1. fetch 拉数据
 const res = await fetch("https://api.example.com/list");
 const data = await res.json();
 
 // 2. crypto 计算摘要
-const md5 = await hostRuntime.crypto.md5("data");
+const md5 = await hostRuntime.crypto.md5(encoder.encode("data"));
 const sha256 = hostRuntime.crypto
   .createHash("sha256")
-  .update("data")
+  .update(encoder.encode("data"))
   .digest("hex");
 
 // 3. 写本地文件
