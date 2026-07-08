@@ -10,6 +10,7 @@ export default defineConfig({
     nav: [
       { text: "快速开始", link: "/guide/quick-start" },
       { text: "运行时 API", link: "/guide/runtime-api" },
+      { text: "工具包", link: "/guide/plugin-kit" },
       { text: "API 契约", link: "/guide/plugin-api-contract" },
       { text: "调试与发布", link: "/guide/debug-and-release" }
     ],
@@ -20,6 +21,7 @@ export default defineConfig({
           { text: "文档首页", link: "/" },
           { text: "快速开始", link: "/guide/quick-start" },
           { text: "运行时 API", link: "/guide/runtime-api" },
+          { text: "工具包", link: "/guide/plugin-kit" },
           { text: "生命周期与结构", link: "/guide/runtime-and-structure" }
         ]
       },

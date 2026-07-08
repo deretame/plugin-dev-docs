@@ -63,8 +63,10 @@ Breeze 插件运行在 **QuickJS-NG** 引擎中，不是 Node.js 也不是浏览
 
 如果需要存储数据，建议按生命周期拆分：
 
-- 短期数据放 `cache`（随进程存在）
-- 长期数据放 `config`（跨重启保留）
+- 短期数据放 `cache`（随宿主进程存在，QuickJS 实例重建后仍可保留）
+- 长期数据放 `config`（跨应用重启保留）
+
+两者都由 `breeze-plugin-kit` 提供便捷封装，详见 [breeze-plugin-kit 工具包](/guide/plugin-kit)。
 
 ## 6) 兼容性
 

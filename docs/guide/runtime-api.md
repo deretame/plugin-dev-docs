@@ -21,6 +21,8 @@ Breeze 插件运行在 QuickJS-NG 引擎中，不是 Node.js 也不是浏览器�
 - `path`
 - `uuidv4`
 
+> ⚠️ **注意：`fs` 不在可用列表中。** `breeze-plugin-kit` 里保留了 `fs` 的类型声明，但 Breeze **不会向插件注入 `fs` API**。这是出于安全考虑：允许插件直接访问宿主文件系统风险过高。插件应通过 `fetch` 等网络请求与外部交互，请不要在插件中使用 `fs`。
+
 ## fetch
 
 标准 `fetch` 实现。
@@ -47,11 +49,13 @@ const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
 ### 二进制响应优化
 
-对于返回二进制的接口，在请求头中加入以下字段可让宿主直接以二进制方式解析响应，避免不必要的类型转换：
+对于返回二进制的接口（例如图片下载），强烈建议在请求头中加入：
 
 ```
 x-rquickjs-host-offload-binary-v1: 1
 ```
+
+作用：显式声明“本次响应需要以原始二进制形式返回”，强制宿主直接把字节流透传给插件。如果不加这个头，宿主可能会把二进制响应当作普通数据做预处理（例如字符串化、编码转换或格式包装），导致拿到的数据失真、长度不对或图片解码失败。
 
 ```js
 const res = await fetch(url, {
@@ -59,6 +63,8 @@ const res = await fetch(url, {
 });
 const buf = await res.arrayBuffer();
 ```
+
+> 建议：在 `fetchImageBytes` 中**始终携带该请求头**，这是图片能正常显示的最常见原因之一。
 
 ## bridge
 
@@ -75,20 +81,6 @@ const buf = await res.arrayBuffer();
 
 以下路由开箱即用，无需注册：
 
-**摘要**
-- `crypto.md5_hex`
-- `crypto.sha1_hex`
-- `crypto.sha512_hex`
-- `crypto.hmac_sha1_hex`
-- `crypto.hmac_sha512_hex`
-
-**AES**
-- `crypto.aes_ecb_pkcs7_decrypt_b64`
-- `crypto.aes_cbc_pkcs7_encrypt_b64`
-- `crypto.aes_cbc_pkcs7_decrypt_b64`
-- `crypto.aes_gcm_encrypt_b64`
-- `crypto.aes_gcm_decrypt_b64`
-
 **压缩**
 - `compression.gzip_compress`
 - `compression.gzip_decompress`
@@ -101,13 +93,14 @@ const buf = await res.arrayBuffer();
 **数学**
 - `math.add`
 
+> 加密相关路由（`crypto.*`）见下文 [crypto](#crypto) 章节，不在此处重复列出。
+
 ### 说明
 
 - 参数中的二进制数据会自动转为宿主端 buffer
 - 返回的二进制数据会自动还原为 `Uint8Array`
 
 ```js
-const md5 = await bridge.call("crypto.md5_hex", "hello");
 const compressed = await bridge.call(
   "compression.gzip_compress",
   new Uint8Array([1, 2, 3]),
@@ -138,20 +131,43 @@ console.debug("...");
 
 ## crypto
 
-Node.js 兼容的加密 API **子集**，非完整实现。
+> ⚠️ **重要：Breeze 的 `crypto` 不是 Web Crypto API，也不是 Node.js 的 `crypto` 模块。** 虽然运行时把 `crypto` 挂到了 `globalThis` 上，但它的 API 形态与两者都不兼容。请不要直接写 `crypto.xxx()` 然后依赖 tsserver 的类型推导，否则会拿到错误的类型提示。
+>
+> 正确做法是从 `breeze-plugin-kit` 显式导入获取：
+>
+> ```ts
+> import { requireCryptoLike } from "breeze-plugin-kit";
+> const crypto = requireCryptoLike();
+> ```
+>
+> 详见 [breeze-plugin-kit 工具包](/guide/plugin-kit#crypto-加密解密)。
+
+Breeze 注入的 `crypto` 是 Node.js 兼容的加密 API **子集**，非完整实现。
 
 ### 支持的方法
 
 ```js
-// 哈希
-crypto.createHash("sha256" | "sha-256")
-crypto.createHash("sha1"   | "sha-1")
-crypto.createHash("sha512" | "sha-512")
+// 哈希（返回 hex 字符串）
+crypto.md5(input)
+crypto.sha1(input)
+crypto.sha256(input)
+crypto.sha512(input)
 
-// HMAC
+// HMAC（返回 hex 字符串）
+crypto.hmacSha1(key, input)
+crypto.hmacSha256(key, input)
+crypto.hmacSha512(key, input)
+
+// 流式哈希 / HMAC
+crypto.createHash("sha256" | "sha-256")
 crypto.createHmac("sha256" | "sha-256", key)
-crypto.createHmac("sha1"   | "sha-1", key)
-crypto.createHmac("sha512" | "sha-512", key)
+
+// AES（返回 Uint8Array）
+crypto.aesCbcPkcs7Encrypt(input, keyRaw, ivRaw)
+crypto.aesCbcPkcs7Decrypt(input, keyRaw, ivRaw)
+crypto.aesGcmEncrypt(input, keyRaw, nonceRaw, aad?)
+crypto.aesGcmDecrypt(input, keyRaw, nonceRaw, aad?)
+crypto.aesEcbPkcs7Decrypt(input, keyRaw) // 仅解密
 
 // 工具
 crypto.randomBytes(size)
@@ -161,19 +177,6 @@ crypto.timingSafeEqual(a, b)
 // PBKDF2
 crypto.pbkdf2Sync(password, salt, iterations, keyLen, digest?)
 crypto.pbkdf2(password, salt, iterations, keyLen, digest?, callback)
-
-// AES 便捷包装
-crypto.aesCbcPkcs7EncryptB64(payloadB64, keyRaw, ivRaw)
-crypto.aesCbcPkcs7DecryptB64(payloadB64, keyRaw, ivRaw)
-crypto.aesGcmEncryptB64(payloadB64, keyRaw, nonceRaw, aadB64?)
-crypto.aesGcmDecryptB64(payloadB64, keyRaw, nonceRaw, aadB64?)
-```
-
-### Hash / Hmac 链式方法
-
-```
-hash.update(data, inputEncoding?) → Hash
-hash.digest(encoding?) → string | Buffer
 ```
 
 ### 支持的编码
@@ -183,18 +186,32 @@ hash.digest(encoding?) → string | Buffer
 ### 说明
 
 - `pbkdf2`/`pbkdf2Sync` 目前固定走 sha256
-- ECB 模式只提供了解密路由（通过 bridge）
-- CBC 和 GCM 同时提供了 `crypto.*` 包装和 bridge 路由
+- ECB、CBC、GCM 均提供加密和解密
+- **推荐通过 `const crypto = requireCryptoLike()` 调用 `crypto.aes*`**，不建议直接使用 `bridge.call("crypto.*")` 路由
+- AES 方法的 `input` 可以是 `string | Uint8Array | ArrayBuffer | ArrayBufferView | number[]`
 
-```js
-// crypto 对象
+```ts
+import { requireCryptoLike, bytesToBase64, bytesFromBase64 } from "breeze-plugin-kit";
+
+const crypto = requireCryptoLike();
+
+// 摘要
+const md5 = await crypto.md5("text");
+
+// 流式哈希
 const hash = crypto.createHash("sha256").update("text").digest("hex");
-const mac = crypto.createHmac("sha1", "key").update("text").digest("hex");
 
-// bridge 路由
-const md5 = await bridge.call("crypto.md5_hex", "text");
-const decrypted = await bridge.call(
-  "crypto.aes_cbc_pkcs7_decrypt_b64", payload, key, iv,
+// AES-CBC
+const encrypted = await crypto.aesCbcPkcs7Encrypt("text", key, iv);
+const decrypted = await crypto.aesCbcPkcs7Decrypt(encrypted, key, iv);
+
+// Base64 互转
+const b64 = bytesToBase64(encrypted);
+const bytes = bytesFromBase64(b64);
+
+// 旧式 bridge 路由（不推荐，建议用上面的 crypto.aesCbcPkcs7Decrypt）
+const decryptedB64 = await bridge.call(
+  "crypto.aes_cbc_pkcs7_decrypt_b64", payloadB64, key, iv,
 );
 ```
 
@@ -206,7 +223,13 @@ const id = uuidv4();
 
 ## Buffer
 
-Node.js 兼容的 Buffer 子集。
+> 如果需要使用 `Buffer` 类型，建议从 `breeze-plugin-kit` 显式引入类型声明，避免 tsserver 按其他环境（如 Node.js DOM）推断出错误的类型：
+>
+> ```ts
+> import type { Buffer } from "breeze-plugin-kit";
+> ```
+
+Breeze 注入的 `Buffer` 是 **Node.js 兼容的 Buffer 子集**，并非常见的浏览器 `ArrayBuffer` 包装。
 
 ```js
 Buffer.from(data, encoding?)
@@ -232,18 +255,35 @@ const copy = structuredClone({ a: 1, b: [2, 3] });
 
 ## 类型定义
 
-示例仓库 `types/` 目录包含完整的 TypeScript 类型定义：
+类型定义由 `breeze-plugin-kit` 包统一提供：
 
-- `types/type.d.ts` — 插件所有 fnPath 的请求/响应结构
-- `types/runtime-api.ts` — 运行时 API 的便捷封装
-- `types/runtime-globals.d.ts` — 全局对象的 TypeScript 声明
-- `types/runtime-api.typecheck.ts` — 运行时类型校验
+```bash
+pnpm add breeze-plugin-kit
+```
 
-建议开发时直接引用这些类型。
+```ts
+import type { SearchResultContract, ComicDetailContract } from "breeze-plugin-kit";
+```
+
+主要模块：
+
+- 插件所有 `fnPath` 的请求/响应结构
+- 运行时全局对象（`bridge`、`crypto`、`native`、`fs` 等）的类型声明
+- `hostRuntime`、`getApi`、`requireApi` 等便捷封装
+
+详见 [breeze-plugin-kit 工具包](/guide/plugin-kit)。
 
 ## 便捷封装
 
-示例仓库 `src/tools.ts` 提供了一些常用功能的便捷封装（`cache.*`、`pluginConfig.*`、`opencc.*`、`flutterTools.*`、`runtime.*`），详细用法见源码注释。
+`breeze-plugin-kit` 提供了常用功能的便捷封装：
+
+- `cache.*` — 进程内缓存（生命周期跟随宿主进程）
+- `pluginConfig.*` — 持久化配置
+- `opencc.*` — 简繁转换
+- `flutterTools.*` — Flutter 宿主交互（Toast、获取版本等）
+- `runtime.*` — 运行时工具（GC、任务取消检查等）
+
+详细用法见 [breeze-plugin-kit 工具包](/guide/plugin-kit)。
 
 ## 常见用法
 

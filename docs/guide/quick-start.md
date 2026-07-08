@@ -141,24 +141,29 @@ pnpm run dev
 - 开发模式下 bundle 变更会自动热更新，无需手动重构建
 - 部分功能**无法实时热更新**，如 `init`、`getInfo` 的 `function` 入口信息。如果修改了这类内容，需要重启软件，或卸载后重新安装插件才能触发刷新
 - 调试模式下 QJS 实例重建，模块级变量会重新初始化
-- 如果需要保留短期数据，放入 `cache`；需要长期数据，放入 `config`
+- 如果需要保留短期数据，放入 `cache`（随宿主进程存在，QJS 实例重建后仍可保留）；需要长期数据，放入 `config`
 
 ## 6) 工程结构
 
+示例仓库采用 pnpm workspace 结构：
+
 ```text
 Breeze-plugin-example/
+  packages/
+    plugin-kit/           # breeze-plugin-kit 工具包（类型 + 常用工具函数）
+      src/
+        index.ts          # 统一导出
+        tools.ts          # cache / pluginConfig / runtime / opencc / flutterTools
+        runtime-api.ts    # hostRuntime / getApi / requireApi 等封装
+        types/            # 类型声明文件（*.d.ts）
+      package.json
+      tsconfig.json
   src/
-    index.ts        # 插件入口，export default 导出 API 表
-    common.ts       # 公共构造函数和常量
-    get-info.ts     # 插件信息拼装
-    tools.ts        # 常用功能便捷封装（cache、config、opencc 等）
-  types/
-    type.d.ts                 # 插件契约类型
-    runtime-api.ts            # 运行时 API 便捷封装
-    runtime-globals.d.ts      # 全局对象类型声明
-    runtime-api.typecheck.ts  # 运行时类型校验
-  build/            # 构建脚本
-  manifest.json     # 由 pnpm build 自动生成
+    index.ts              # 插件入口，export default 导出 API 表
+    common.ts             # 公共构造函数和常量
+    get-info.ts           # 插件信息拼装
+  build/                  # 构建脚本
+  manifest.json           # 由 pnpm build 自动生成
   package.json
   tsconfig.json
   rspack.config.ts
@@ -166,8 +171,9 @@ Breeze-plugin-example/
 
 说明：
 
-- `export default` 导出的对象即 API 表，键名必须与 Breeze 调用的 `fnPath` 一致
-- `manifest.json` 通过 `pnpm run build` 自动生成，**不手动维护**
+- `export default` 导出的对象即 API 表，键名必须与 Breeze 调用的 `fnPath` 一致。
+- `manifest.json` 通过 `pnpm run build` 自动生成，**不手动维护**。
+- 类型和常用工具函数已拆到 `breeze-plugin-kit`，新插件直接 `pnpm add breeze-plugin-kit` 即可使用。
 
 ## 7) 构建
 
@@ -181,4 +187,4 @@ pnpm run build
 
 ## 8) 下一步阅读
 
-继续看 [运行时 API](/guide/runtime-api)、[插件 API 契约](/guide/plugin-api-contract) 和 [生命周期与结构](/guide/runtime-and-structure)。
+继续看 [运行时 API](/guide/runtime-api)、[breeze-plugin-kit 工具包](/guide/plugin-kit)、[插件 API 契约](/guide/plugin-api-contract) 和 [生命周期与结构](/guide/runtime-and-structure)。

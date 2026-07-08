@@ -18,12 +18,12 @@ type PluginPayload<T extends Record<string, unknown>> = T & {
 例如 `searchComic` 的实际签名：
 
 ```ts
-import type { SearchComicPayload } from "../types/type";
+import type { SearchComicPayload, SearchResultContract } from "breeze-plugin-kit";
 
 async function searchComic(payload: SearchComicPayload): Promise<SearchResultContract> {}
 ```
 
-所有参数类型定义在示例仓库 `types/type.d.ts` 中，下文每个 `fnPath` 会标注其对应的 Payload 和返回类型。
+所有参数类型定义由 `breeze-plugin-kit` 提供。下文每个 `fnPath` 会标注其对应的 Payload 和返回类型。
 
 ### 0.2 返回模型
 
@@ -55,7 +55,7 @@ type PluginEnvelope = {
 
 ### 0.5 类型引用
 
-所有类型定义在示例仓库 `types/type.d.ts`。下文标注的 Payload 和 Contract 类型均来自该文件。
+所有类型定义来自 `breeze-plugin-kit`。下文标注的 Payload 和 Contract 类型均可从该包导入。
 
 ---
 
@@ -353,8 +353,10 @@ type FetchImageBytesResult = Uint8Array<ArrayBufferLike>;
 
 `url` 来自 `ImageItem.url`，宿主不会用它下载图片，下载逻辑由插件自行实现。但传入的 `url` 必须是有效占位符字符串，不能为空或 404 地址。
 
+> ⚠️ **必须加二进制透传头**：`fetchImageBytes` 的请求头里务必带上 `"x-rquickjs-host-offload-binary-v1": "1"`。这会让宿主把响应作为原始二进制字节流返回，而不是做字符串化或编码转换等预处理。缺少该头时，图片数据极易出现长度不对、解码失败或显示异常。
+
 ```ts
-// 实现建议： 
+// 实现建议：
 async function fetchImageBytes({
   url,
   timeoutMs = 30000,
@@ -363,6 +365,11 @@ async function fetchImageBytes({
     headers: { "x-rquickjs-host-offload-binary-v1": "1" },
     signal: AbortSignal.timeout(timeoutMs),
   });
+
+  if (!res.ok) {
+    throw new Error(`下载失败: ${res.status}`);
+  }
+
   return new Uint8Array(await res.arrayBuffer());
 }
 ```
@@ -692,7 +699,7 @@ type BaseField = {
 };
 ```
 
-当用户修改携带 `fnPath` 的字段值时，宿主调用该函数，入参 `{ key: string, value: unknown, allValues: Record<string, unknown> }`。
+当用户修改携带 `fnPath` 的字段值时，宿主调用该函数，入参 `{ extern: Record<string, unknown>, key: string, value: unknown }`。
 
 ### `getCapabilitiesBundle()`
 
@@ -778,15 +785,26 @@ type UserInfoBundleContract = {
 
 ```ts
 type SettingsFieldCallbackPayload = {
+  extern: Record<string, unknown>;
   key: string;           // 字段 key，如 "auth.account"
-  value: unknown;        // 新值
-  allValues: Record<string, unknown>;  // 所有字段当前值
+  value: unknown;        // 新值，可能是单值也可能是数组
 };
 ```
 
+示例：
+
+```ts
+{ extern: {}, key: "auth.remember", value: true }
+{ extern: {}, key: "display.theme", value: "dark" }
+{ extern: {}, key: "content.hiddenTags", value: ["tag-b", "tag-c", "tag-d"] }
+```
+
+- 普通字段（text / password / switch / choice）的 `value` 为单个值。
+- `multiChoice` 字段的 `value` 为数组，例如 `onHiddenTagsChanged` 接收到的就是标签数组。
+
 示例仓库中的对应回调：
-- 文本/密码变更 → `onAuthChanged`、`onRememberChanged`
-- 开关变更 → `onAdultChanged`
+- 文本/密码变更 → `onAuthChanged`
+- 开关变更 → `onRememberChanged`、`onAdultChanged`
 - choice 变更 → `onThemeChanged`、`onQualityChanged`
 - multiChoice 变更 → `onHiddenTagsChanged`
 
