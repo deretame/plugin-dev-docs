@@ -16,9 +16,9 @@ Breeze 插件运行在 QuickJS-NG 引擎中，不是 Node.js 也不是浏览器�
 - `crypto`
 - `TextEncoder` / `TextDecoder`
 - `Buffer`
+- `path`
 - `native`
 - `bridge`
-- `path`
 - `uuidv4`
 
 > ⚠️ **注意：`fs` 不在可用列表中。** `breeze-plugin-kit` 里保留了 `fs` 的类型声明，但 Breeze **不会向插件注入 `fs` API**。这是出于安全考虑：允许插件直接访问宿主文件系统风险过高。插件应通过 `fetch` 等网络请求与外部交互，请不要在插件中使用 `fs`。
@@ -59,7 +59,7 @@ x-rquickjs-host-offload-binary-v1: 1
 
 ```js
 const res = await fetch(url, {
-  headers: { "x-rquickjs-host-offload-binary-v1": "1" }
+  headers: { "x-rquickjs-host-offload-binary-v1": "1" },
 });
 const buf = await res.arrayBuffer();
 ```
@@ -82,15 +82,18 @@ const buf = await res.arrayBuffer();
 以下路由开箱即用，无需注册：
 
 **压缩**
+
 - `compression.gzip_compress`
 - `compression.gzip_decompress`
 
 **原生**
+
 - `native.put`
 - `native.take`
 - `native.exec`
 
 **数学**
+
 - `math.add`
 
 > 加密相关路由（`crypto.*`）见下文 [crypto](#crypto) 章节，不在此处重复列出。
@@ -158,16 +161,29 @@ crypto.hmacSha1(key, input)
 crypto.hmacSha256(key, input)
 crypto.hmacSha512(key, input)
 
-// 流式哈希 / HMAC
+// 流式哈希
 crypto.createHash("sha256" | "sha-256")
-crypto.createHmac("sha256" | "sha-256", key)
+crypto.createHash("sha1"   | "sha-1")
+crypto.createHash("sha512" | "sha-512")
 
-// AES（返回 Uint8Array）
+// 流式 HMAC
+crypto.createHmac("sha256" | "sha-256", key)
+crypto.createHmac("sha1"   | "sha-1", key)
+crypto.createHmac("sha512" | "sha-512", key)
+
+// AES（输入可以是 string / Uint8Array / ArrayBuffer / ArrayBufferView / number[]，输出 Uint8Array）
+crypto.aesEcbPkcs7Encrypt(input, keyRaw)
+crypto.aesEcbPkcs7Decrypt(input, keyRaw)
 crypto.aesCbcPkcs7Encrypt(input, keyRaw, ivRaw)
 crypto.aesCbcPkcs7Decrypt(input, keyRaw, ivRaw)
 crypto.aesGcmEncrypt(input, keyRaw, nonceRaw, aad?)
 crypto.aesGcmDecrypt(input, keyRaw, nonceRaw, aad?)
-crypto.aesEcbPkcs7Decrypt(input, keyRaw) // 仅解密
+
+// 旧版 base64 包装（已废弃，仍兼容）
+crypto.aesCbcPkcs7EncryptB64(payloadB64, keyRaw, ivRaw)
+crypto.aesCbcPkcs7DecryptB64(payloadB64, keyRaw, ivRaw)
+crypto.aesGcmEncryptB64(payloadB64, keyRaw, nonceRaw, aadB64?)
+crypto.aesGcmDecryptB64(payloadB64, keyRaw, nonceRaw, aadB64?)
 
 // 工具
 crypto.randomBytes(size)
@@ -185,10 +201,10 @@ crypto.pbkdf2(password, salt, iterations, keyLen, digest?, callback)
 
 ### 说明
 
-- `pbkdf2`/`pbkdf2Sync` 目前固定走 sha256
+- `pbkdf2` / `pbkdf2Sync` 目前固定走 sha256
 - ECB、CBC、GCM 均提供加密和解密
 - **推荐通过 `const crypto = requireCryptoLike()` 调用 `crypto.aes*`**，不建议直接使用 `bridge.call("crypto.*")` 路由
-- AES 方法的 `input` 可以是 `string | Uint8Array | ArrayBuffer | ArrayBufferView | number[]`
+- 旧版 `_hex` / `_b64` API 行为较为模糊，已废弃，不再建议使用
 
 ```ts
 import { requireCryptoLike, bytesToBase64, bytesFromBase64 } from "breeze-plugin-kit";
@@ -236,6 +252,18 @@ Buffer.from(data, encoding?)
 Buffer.alloc(size)
 Buffer.isBuffer(obj)
 Buffer.byteLength(string, encoding?)
+```
+
+## path
+
+路径工具，与 Node.js `path` 子集兼容。
+
+```js
+path.join("/a", "b", "../c"); // "/a/c"
+path.resolve("a", "b");       // 绝对路径
+path.dirname("/a/b/c.txt");   // "/a/b"
+path.basename("/a/b/c.txt");  // "c.txt"
+path.extname("/a/b/c.txt");   // ".txt"
 ```
 
 ## TextEncoder / TextDecoder
@@ -288,12 +316,21 @@ import type { SearchResultContract, ComicDetailContract } from "breeze-plugin-ki
 ## 常见用法
 
 ```ts
+import { requireCryptoLike } from "breeze-plugin-kit";
+
+const crypto = requireCryptoLike();
+const encoder = new TextEncoder();
+
 // 1. fetch 拉数据
 const res = await fetch("https://api.example.com/list");
 const data = await res.json();
 
-// 2. bridge 调路由
-const md5 = await bridge.call("crypto.md5_hex", "data");
+// 2. crypto 计算摘要
+const md5 = await crypto.md5(encoder.encode("data"));
+const sha256 = crypto
+  .createHash("sha256")
+  .update(encoder.encode("data"))
+  .digest("hex");
 
 // 3. console 打日志
 console.log("result:", data);
