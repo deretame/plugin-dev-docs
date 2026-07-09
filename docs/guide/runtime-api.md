@@ -20,8 +20,12 @@ Breeze 插件运行在 QuickJS-NG 引擎中，不是 Node.js 也不是浏览器�
 - `native`
 - `bridge`
 - `uuidv4`
+- `BreezeHtml`
+- `bytesToBase64` / `bytesFromBase64`
+- `hostCrypto`
+- `__web`
 
-> ⚠️ **注意：`fs` 不在可用列表中。** `breeze-plugin-kit` 里保留了 `fs` 的类型声明，但 Breeze **不会向插件注入 `fs` API**。这是出于安全考虑：允许插件直接访问宿主文件系统风险过高。插件应通过 `fetch` 等网络请求与外部交互，请不要在插件中使用 `fs`。
+> ⚠️ **注意：`fs` 不在可用列表中。** `breeze-plugin-kit` 里保留了 `fs` 的类型声明，用于在纯 Node.js 测试环境中运行插件代码，但 Breeze **不会向正式运行时的插件注入 `fs` API**。这是出于安全考虑：允许插件直接访问宿主文件系统风险过高。插件应通过 `fetch` 等网络请求与外部交互，请不要在插件中使用 `fs`。
 
 ## fetch
 
@@ -29,10 +33,10 @@ Breeze 插件运行在 QuickJS-NG 引擎中，不是 Node.js 也不是浏览器�
 
 ```js
 const res = await fetch("https://api.example.com/data");
-const data = await res.json();          // JSON
-const text = await res.text();          // 文本
-const blob = await res.blob();          // Blob
-const buf = await res.arrayBuffer();    // ArrayBuffer
+const data = await res.json(); // JSON
+const text = await res.text(); // 文本
+const blob = await res.blob(); // Blob
+const buf = await res.arrayBuffer(); // ArrayBuffer
 ```
 
 配套对象 `Request`、`Response`、`Headers`、`AbortController`、`AbortSignal`、`FormData`、`Blob`、`File` 均可用。
@@ -97,18 +101,6 @@ const buf = await res.arrayBuffer();
 - `math.add`
 
 > 加密相关路由（`crypto.*`）见下文 [crypto](#crypto) 章节，不在此处重复列出。
-
-### 说明
-
-- 参数中的二进制数据会自动转为宿主端 buffer
-- 返回的二进制数据会自动还原为 `Uint8Array`
-
-```js
-const compressed = await bridge.call(
-  "compression.gzip_compress",
-  new Uint8Array([1, 2, 3]),
-);
-```
 
 ## native
 
@@ -207,7 +199,11 @@ crypto.pbkdf2(password, salt, iterations, keyLen, digest?, callback)
 - 旧版 `_hex` / `_b64` API 行为较为模糊，已废弃，不再建议使用
 
 ```ts
-import { requireCryptoLike, bytesToBase64, bytesFromBase64 } from "breeze-plugin-kit";
+import {
+  requireCryptoLike,
+  bytesToBase64,
+  bytesFromBase64,
+} from "breeze-plugin-kit";
 
 const crypto = requireCryptoLike();
 
@@ -227,7 +223,10 @@ const bytes = bytesFromBase64(b64);
 
 // 旧式 bridge 路由（不推荐，建议用上面的 crypto.aesCbcPkcs7Decrypt）
 const decryptedB64 = await bridge.call(
-  "crypto.aes_cbc_pkcs7_decrypt_b64", payloadB64, key, iv,
+  "crypto.aes_cbc_pkcs7_decrypt_b64",
+  payloadB64,
+  key,
+  iv,
 );
 ```
 
@@ -260,10 +259,10 @@ Buffer.byteLength(string, encoding?)
 
 ```js
 path.join("/a", "b", "../c"); // "/a/c"
-path.resolve("a", "b");       // 绝对路径
-path.dirname("/a/b/c.txt");   // "/a/b"
-path.basename("/a/b/c.txt");  // "c.txt"
-path.extname("/a/b/c.txt");   // ".txt"
+path.resolve("a", "b"); // 绝对路径
+path.dirname("/a/b/c.txt"); // "/a/b"
+path.basename("/a/b/c.txt"); // "c.txt"
+path.extname("/a/b/c.txt"); // ".txt"
 ```
 
 ## TextEncoder / TextDecoder
@@ -290,7 +289,10 @@ pnpm add breeze-plugin-kit
 ```
 
 ```ts
-import type { SearchResultContract, ComicDetailContract } from "breeze-plugin-kit";
+import type {
+  SearchResultContract,
+  ComicDetailContract,
+} from "breeze-plugin-kit";
 ```
 
 主要模块：
@@ -334,4 +336,168 @@ const sha256 = crypto
 
 // 3. console 打日志
 console.log("result:", data);
+```
+
+## BreezeHtml
+
+`BreezeHtml` 是 Breeze 运行时注入的 **Rust 原生 HTML 解析与操作 API**，实现了 cheerio 的一个常用子集。对于需要解析 HTML 页面的插件（例如从网页抓取漫画列表、详情、章节），推荐优先使用它，而不是额外打包 cheerio 等解析库，可以显著减小 bundle 体积并提升解析性能。
+
+### 基本用法
+
+```ts
+const $ = BreezeHtml.load(html);
+
+// 选择元素
+const title = $("title").text();
+const links = $("a")
+  .map((_, el) => $(el).attr("href"))
+  .get()
+  .filter(Boolean);
+```
+
+### 支持的 API
+
+| 方法                                                                                                       | 说明                                   |
+| ---------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `BreezeHtml.load(html)`                                                                                    | 加载 HTML 字符串，返回 `$` 选择器函数  |
+| `$(selector)`                                                                                              | 按 CSS 选择器查找元素                  |
+| `.find(selector)`                                                                                          | 在当前选择范围内继续查找               |
+| `.first()` / `.last()` / `.eq(i)`                                                                          | 取第几个匹配元素                       |
+| `.closest(selector)` / `.parent()` / `.children(sel?)` / `.siblings(sel?)` / `.next(sel?)` / `.prev(sel?)` | 遍历 DOM                               |
+| `.is(selector)`                                                                                            | 判断是否匹配选择器                     |
+| `.filter(selector \| fn)` / `.has(selector)` / `.slice(start, end?)` / `.index()`                          | 过滤与索引                             |
+| `.attr(name)`                                                                                              | 读取属性值                             |
+| `.text()`                                                                                                  | 读取纯文本内容                         |
+| `.html()`                                                                                                  | 读取 HTML 字符串                       |
+| `.val()`                                                                                                   | 读取表单值                             |
+| `.toArray()`                                                                                               | 返回选择器数组                         |
+| `.each(fn)`                                                                                                | 遍历每个匹配元素                       |
+| `.map(fn)`                                                                                                 | 映射每个匹配元素，`get()` 拿到结果数组 |
+
+### 完整示例：解析搜索列表
+
+```ts
+import type { CheerioAPI, ComicListItem } from "breeze-plugin-kit";
+
+function parseSearchHtml(html: string): ComicListItem[] {
+  const $ = BreezeHtml.load(html);
+
+  return $(".comic-item")
+    .map((_, element) => {
+      const $el = $(element);
+      const id = $el.attr("data-id") ?? "";
+      const title = $el.find(".title").text().trim();
+      const cover = $el.find("img").attr("src") ?? "";
+
+      return {
+        source: PLUGIN_ID,
+        id,
+        title,
+        subtitle: "",
+        finished: false,
+        likesCount: 0,
+        viewsCount: 0,
+        updatedAt: "",
+        cover: {
+          id,
+          url: cover || "https://example.com/placeholder.jpg",
+          name: "cover",
+          path: cover || "https://example.com/placeholder.jpg",
+          extern: {},
+        },
+        metadata: [],
+        raw: {},
+        extern: {},
+      };
+    })
+    .get()
+    .filter((item) => item.id && item.title);
+}
+```
+
+### 与 cheerio 的关系
+
+- `BreezeHtml` 不是完整 cheerio，只覆盖了插件开发中最常用的选择器与遍历操作。
+- 如果你需要 cheerio 的高级功能（例如复杂的 DOM 修改、序列化控制），仍然可以自行安装 cheerio 并打包进 bundle。
+- `breeze-plugin-kit` 提供了兼容别名：`CheerioAPI` 对应 `BreezeApi`，`Cheerio` 对应 `BreezeSelection`，方便从 cheerio 迁移。
+
+### TypeScript 类型
+
+`breeze-plugin-kit` 会自动注入 `BreezeHtml` 的全局类型，无需额外声明：
+
+```ts
+import type { CheerioAPI, Cheerio } from "breeze-plugin-kit";
+```
+
+## Base64
+
+运行时提供两个全局便捷函数用于 Base64 编解码：
+
+```ts
+const bytes = bytesFromBase64("aGVsbG8="); // Uint8Array
+const text = bytesToBase64(new TextEncoder().encode("hello")); // "aGVsbG8="
+```
+
+`breeze-plugin-kit` 也导出了同名函数与类型，推荐从包中导入：
+
+```ts
+import { bytesToBase64, bytesFromBase64 } from "breeze-plugin-kit";
+```
+
+通常与 `crypto` 配合使用：先解密得到 `Uint8Array`，再用 `bytesToBase64` 转成字符串。
+
+## hostCrypto 与 \_\_web
+
+除了把 `crypto` 挂载到 `globalThis.crypto`，运行时还会暴露：
+
+- `hostCrypto` — 与 `crypto` 指向同一对象，可作为兜底读取方式。
+- `__web` — 运行时内部总线，包含全部注入能力（`fs`、`path`、`native`、`bridge`、`base64`、`crypto`、`uuidv4` 等）。
+
+一般不推荐直接使用 `__web`，因为它暴露的 `fs` 在真实 Breeze 宿主中并不存在。建议通过 `breeze-plugin-kit` 的封装或全局具名对象（`bridge`、`native`、`BreezeHtml` 等）访问具体能力。
+
+## 完整开发范式
+
+一个典型的插件接口实现会组合使用以下运行时 API：
+
+```ts
+import {
+  requireCryptoLike,
+  bytesToBase64,
+  bytesFromBase64,
+} from "breeze-plugin-kit";
+import type {
+  SearchComicPayload,
+  SearchResultContract,
+} from "breeze-plugin-kit";
+
+const crypto = requireCryptoLike();
+
+async function searchComic(
+  payload: SearchComicPayload,
+): Promise<SearchResultContract> {
+  // 1. 构造请求
+  const url = `https://api.example.com/search?q=${encodeURIComponent(payload.keyword ?? "")}&page=${payload.page ?? 1}`;
+
+  // 2. 请求 HTML
+  const res = await fetch(url);
+  const html = await res.text();
+
+  // 3. 用 BreezeHtml 解析
+  const $ = BreezeHtml.load(html);
+  const items = $(".item")
+    .map((_, el) => {
+      const $el = $(el);
+      return {
+        id: $el.attr("data-id") ?? "",
+        title: $el.find(".title").text().trim(),
+        coverUrl: $el.find("img").attr("src") ?? "",
+      };
+    })
+    .get();
+
+  // 4. 必要时做摘要/加密
+  const sign = await crypto.md5(url);
+
+  // ... 组装 SearchResultContract
+}
 ```

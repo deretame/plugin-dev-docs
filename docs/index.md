@@ -17,8 +17,8 @@
 ## 文档内容
 
 - 基于示例仓库直接开工
-- 运行时 API 参考（`fetch`、`bridge`、`crypto` 等）
-- `breeze-plugin-kit` 工具包使用说明（类型、`cache`、`pluginConfig`、`opencc` 等）
+- 运行时 API 参考（`fetch`、`bridge`、`crypto`、`BreezeHtml` 等）
+- `breeze-plugin-kit` 工具包使用说明（类型、`cache`、`pluginConfig`、`opencc`、HTML 解析等）
 - 所有 fnPath 的 TypeScript 类型定义与调用语义
 - Scheme + data 页面协议说明
 - 本地联调、调试模式、打包发布流程
@@ -42,8 +42,8 @@
 ## 推荐阅读顺序
 
 1. [快速开始](/guide/quick-start)
-2. [运行时 API](/guide/runtime-api)
-3. [breeze-plugin-kit 工具包](/guide/plugin-kit)
+2. [运行时 API](/guide/runtime-api)（重点看 `fetch`、`BreezeHtml`、`crypto`）
+3. [breeze-plugin-kit 工具包](/guide/plugin-kit)（重点看 `cache`、`pluginConfig`、HTML 解析类型）
 4. [生命周期与结构](/guide/runtime-and-structure)
 5. [插件 API 契约](/guide/plugin-api-contract)
 6. [调试与发布](/guide/debug-and-release)

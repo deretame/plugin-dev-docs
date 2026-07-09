@@ -51,7 +51,75 @@ import type {
 } from "breeze-plugin-kit";
 ```
 
-运行时全局对象的类型也会自动注入，例如 `bridge`、`crypto`、`native`、`fs` 等，无需额外声明。
+运行时全局对象的类型也会自动注入，例如 `bridge`、`crypto`、`native`、`BreezeHtml`、`bytesToBase64`、`bytesFromBase64` 等，无需额外声明。
+
+如果你需要为 `BreezeHtml.load()` 的返回值标注类型，可以导入兼容别名：
+
+```ts
+import type { CheerioAPI, Cheerio } from "breeze-plugin-kit";
+
+function parseSearchPage(html: string): ComicListItem[] {
+  const $: CheerioAPI = BreezeHtml.load(html);
+
+  return $(".item")
+    .map((_, el) => {
+      const $el: Cheerio = $(el);
+      // ...
+    })
+    .get();
+}
+```
+
+## HTML 解析
+
+`breeze-plugin-kit` 为 `BreezeHtml` 提供了完整的 TypeScript 类型支持。`BreezeHtml` 是 Breeze 运行时注入的 Rust 原生 HTML 解析器，API 与 cheerio 常用子集兼容。
+
+### 为什么优先用 BreezeHtml
+
+- **无需打包**：运行时直接提供，不用把 cheerio 打进 bundle，体积更小。
+- **性能更好**：Rust 后端解析通常比纯 JS 解析器更快。
+- **类型友好**：`breeze-plugin-kit` 提供 `CheerioAPI` / `Cheerio` 兼容别名。
+
+### 典型用法
+
+```ts
+import type { CheerioAPI, ComicListItem } from "breeze-plugin-kit";
+
+function parseList(html: string): ComicListItem[] {
+  const $: CheerioAPI = BreezeHtml.load(html);
+
+  return $(".comic-list > li")
+    .map((_, el) => {
+      const $el = $(el);
+      return {
+        source: PLUGIN_ID,
+        id: $el.attr("data-id") ?? "",
+        title: $el.find(".title").text().trim(),
+        // ... 其他字段
+      };
+    })
+    .get();
+}
+```
+
+### 迁移自 cheerio
+
+已有使用 cheerio 的插件，通常只需把：
+
+```ts
+import * as cheerio from "cheerio";
+const $ = cheerio.load(html);
+```
+
+改为：
+
+```ts
+const $ = BreezeHtml.load(html);
+```
+
+并把类型引用改为 `import type { CheerioAPI, Cheerio } from "breeze-plugin-kit"`。
+
+> `BreezeHtml` 没有实现 cheerio 的全部高级功能。如果确实需要，仍可引入完整 cheerio。
 
 ## 工具函数
 
@@ -76,15 +144,15 @@ async function searchComic(payload: SearchComicPayload) {
 
 方法列表：
 
-| 方法 | 说明 |
-| --- | --- |
-| `cache.get<T>(key, fallback)` | 异步读取 |
-| `cache.getSync(key, fallback)` | 同步读取 |
-| `cache.set(key, value)` | 异步写入 |
-| `cache.setSync(key, value)` | 同步写入 |
-| `cache.setIfAbsent(key, value)` | 仅当不存在时写入 |
-| `cache.compareAndSet(key, expected, next)` | CAS 更新 |
-| `cache.delete(key)` | 删除 |
+| 方法                                       | 说明             |
+| ------------------------------------------ | ---------------- |
+| `cache.get<T>(key, fallback)`              | 异步读取         |
+| `cache.getSync(key, fallback)`             | 同步读取         |
+| `cache.set(key, value)`                    | 异步写入         |
+| `cache.setSync(key, value)`                | 同步写入         |
+| `cache.setIfAbsent(key, value)`            | 仅当不存在时写入 |
+| `cache.compareAndSet(key, expected, next)` | CAS 更新         |
+| `cache.delete(key)`                        | 删除             |
 
 ### `pluginConfig` — 持久化配置
 
@@ -198,14 +266,22 @@ const uuid = crypto.randomUUID();
 需要 Base64 编解码时，可以配合 `bytesToBase64` / `bytesFromBase64`：
 
 ```ts
-import { requireCryptoLike, bytesToBase64, bytesFromBase64 } from "breeze-plugin-kit";
+import {
+  requireCryptoLike,
+  bytesToBase64,
+  bytesFromBase64,
+} from "breeze-plugin-kit";
 
 const crypto = requireCryptoLike();
 
 const encrypted = await crypto.aesCbcPkcs7Encrypt("hello", key, iv);
 const b64 = bytesToBase64(encrypted);
 
-const decrypted = await crypto.aesCbcPkcs7Decrypt(bytesFromBase64(b64), key, iv);
+const decrypted = await crypto.aesCbcPkcs7Decrypt(
+  bytesFromBase64(b64),
+  key,
+  iv,
+);
 ```
 
 如果习惯了 Base64 入参的便捷方法，也可以用 `hostRuntime` 上已废弃的封装：
@@ -223,7 +299,12 @@ const plainB64 = await hostRuntime.aesCbcPkcs7DecryptB64(b64Cipher, key, iv);
 如果你不想直接操作全局变量，可以用 `hostRuntime`、`getApi`、`requireApi`、`requireCryptoLike`：
 
 ```ts
-import { hostRuntime, getApi, requireApi, requireCryptoLike } from "breeze-plugin-kit";
+import {
+  hostRuntime,
+  getApi,
+  requireApi,
+  requireCryptoLike,
+} from "breeze-plugin-kit";
 
 // 强制获取某个 API（不存在则抛错）
 const bridge = requireApi("bridge");
@@ -242,13 +323,14 @@ const compressed = await hostRuntime.gzipCompress(new Uint8Array([1, 2, 3]));
 
 ## 在设置回调里组合使用
 
-设置页字段变更时，如果字段设置了 `persist: true`，宿主会自动把值保存到本地数据库，插件回调是可选的。只有当你需要做额外校验、联动逻辑或给用户反馈时，才需要实现对应的回调：
-
 ```ts
 import { pluginConfig, flutterTools } from "breeze-plugin-kit";
 
 async function onThemeChanged(payload: SettingChangedPayload<string>) {
-  await pluginConfig.save(payload.key, JSON.stringify({ value: payload.value }));
+  await pluginConfig.save(
+    payload.key,
+    JSON.stringify({ value: payload.value }),
+  );
 
   await flutterTools.showToast({
     message: `主题已切换为 ${payload.value}`,

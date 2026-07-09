@@ -149,15 +149,6 @@ pnpm run dev
 
 ```text
 Breeze-plugin-example/
-  packages/
-    plugin-kit/           # breeze-plugin-kit 工具包（类型 + 常用工具函数）
-      src/
-        index.ts          # 统一导出
-        tools.ts          # cache / pluginConfig / runtime / opencc / flutterTools
-        runtime-api.ts    # hostRuntime / getApi / requireApi 等封装
-        types/            # 类型声明文件（*.d.ts）
-      package.json
-      tsconfig.json
   src/
     index.ts              # 插件入口，export default 导出 API 表
     common.ts             # 公共构造函数和常量

@@ -22,6 +22,7 @@ export default defineConfig({
           { text: "快速开始", link: "/guide/quick-start" },
           { text: "运行时 API", link: "/guide/runtime-api" },
           { text: "工具包", link: "/guide/plugin-kit" },
+          { text: "HTML 解析", link: "/guide/plugin-kit#html-解析" },
           { text: "生命周期与结构", link: "/guide/runtime-and-structure" }
         ]
       },

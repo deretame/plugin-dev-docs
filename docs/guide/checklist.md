@@ -6,6 +6,7 @@
 - [ ] 阅读主链路已实现：`searchComic/getComicDetail/getReadSnapshot/fetchImageBytes`
 - [ ] 如支持下载，已实现 `getChapter`
 - [ ] 已基于示例仓库整理插件信息、目录结构和构建脚本
+- [ ] HTML 解析优先使用 `BreezeHtml`，避免把完整 cheerio 打包进 bundle
 
 ## 数据结构
 
@@ -14,6 +15,7 @@
 - [ ] 章节列表与章节详情使用统一章节字段：`id/requestId/logicalKey/storageChapterId/name/order`
 - [ ] 章节图片 `data.chapter.pages[]` 提供 `id/name/path/url`
 - [ ] 所有 `extern` 透传逻辑闭环
+- [ ] HTML 解析结果做了空值/缺失节点兜底，不会因为页面结构微调就整体崩溃
 
 ## 业务流程
 
