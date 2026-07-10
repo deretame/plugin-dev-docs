@@ -210,6 +210,17 @@ import { flutterTools } from "breeze-plugin-kit";
 // 获取 App 版本号
 const version = await flutterTools.getAppVersion();
 
+// 获取宿主语言与时区信息（返回 JSON 字符串，需要 JSON.parse）
+const raw = await flutterTools.getLocaleInfo();
+const info = JSON.parse(raw);
+console.log(info.language); // "zh"
+console.log(info.locale); // "zh_CN"
+console.log(info.systemLocale); // "zh-CN"
+console.log(info.timeZone); // "Asia/Shanghai"
+console.log(info.timezoneOffset); // "+08:00"
+console.log(info.timezoneOffsetMinutes); // 480
+console.log(info.timezoneName); // "CST"
+
 // 显示 Toast
 await flutterTools.showToast({
   message: "保存成功",
@@ -218,6 +229,19 @@ await flutterTools.showToast({
   level: "success", // "info" | "success" | "warning" | "error"
 });
 ```
+
+`getLocaleInfo` 返回字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `language` | `string` | 当前应用语言代码，如 `zh` / `en` |
+| `locale` | `string` | 当前应用 locale，格式 `languageCode_COUNTRYCODE`，如 `zh_CN` |
+| `systemLocale` | `string` | 系统首选 locale 原始字符串，如 `zh-CN` |
+| `timeZone` | `string` | IANA 时区名，如 `Asia/Shanghai` |
+| `timeZoneIANA` | `string` | 与 `timeZone` 相同，IANA 时区名 |
+| `timezoneOffset` | `string` | 时区偏移格式化字符串，如 `+08:00` / `-05:00` |
+| `timezoneOffsetMinutes` | `number` | 时区偏移分钟数，便于直接计算 |
+| `timezoneName` | `string` | 系统时区缩写，如 `CST` / `EST` |
 
 ### `crypto` — 加密解密
 
