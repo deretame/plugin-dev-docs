@@ -51,7 +51,35 @@ import type {
 } from "breeze-plugin-kit";
 ```
 
-运行时全局对象的类型也会自动注入，例如 `bridge`、`crypto`、`native`、`BreezeHtml`、`bytesToBase64`、`bytesFromBase64` 等，无需额外声明。
+运行时全局对象的类型也会自动注入，例如 `bridge`、`crypto`、`native`、`Temporal`、`Intl`、`BreezeHtml`、`bytesToBase64`、`bytesFromBase64` 等，无需额外声明。
+
+### Temporal 类型
+
+安装 `breeze-plugin-kit` 后即可直接使用全局 `Temporal`，IDE 会提供补全与类型检查：
+
+```ts
+const d: Temporal.PlainDate = Temporal.PlainDate.from("2024-03-15");
+const zdt: Temporal.ZonedDateTime =
+  Temporal.Now.zonedDateTimeISO("Asia/Shanghai");
+const instant: Temporal.Instant = new Date().toTemporalInstant();
+```
+
+完整运行时说明见 [运行时 API · Temporal](/guide/runtime-api#temporal)。
+
+### 时间向 Intl 类型
+
+宿主提供时间向 `Intl.DateTimeFormat`（无 Collator / NumberFormat）。类型同样自动注入：
+
+```ts
+const text = new Intl.DateTimeFormat("zh-CN", {
+  dateStyle: "long",
+  timeZone: "Asia/Shanghai",
+}).format(Date.now());
+
+const zones = Intl.supportedValuesOf("timeZone"); // string[]
+```
+
+完整说明见 [运行时 API · Intl](/guide/runtime-api#intl)。
 
 如果你需要为 `BreezeHtml.load()` 的返回值标注类型，可以导入兼容别名：
 
@@ -214,7 +242,7 @@ const version = await flutterTools.getAppVersion();
 const raw = await flutterTools.getLocaleInfo();
 const info = JSON.parse(raw);
 console.log(info.language); // "zh"
-console.log(info.locale); // "zh_CN"
+console.log(info.locale); // "zh-CN"
 console.log(info.systemLocale); // "zh-CN"
 console.log(info.timeZone); // "Asia/Shanghai"
 console.log(info.timezoneOffset); // "+08:00"
@@ -232,16 +260,16 @@ await flutterTools.showToast({
 
 `getLocaleInfo` 返回字段说明：
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `language` | `string` | 当前应用语言代码，如 `zh` / `en` |
-| `locale` | `string` | 当前应用 locale，格式 `languageCode_COUNTRYCODE`，如 `zh_CN` |
-| `systemLocale` | `string` | 系统首选 locale 原始字符串，如 `zh-CN` |
-| `timeZone` | `string` | IANA 时区名，如 `Asia/Shanghai` |
-| `timeZoneIANA` | `string` | 与 `timeZone` 相同，IANA 时区名 |
-| `timezoneOffset` | `string` | 时区偏移格式化字符串，如 `+08:00` / `-05:00` |
-| `timezoneOffsetMinutes` | `number` | 时区偏移分钟数，便于直接计算 |
-| `timezoneName` | `string` | 系统时区缩写，如 `CST` / `EST` |
+| 字段                    | 类型     | 说明                                                         |
+| ----------------------- | -------- | ------------------------------------------------------------ |
+| `language`              | `string` | 当前应用语言代码，如 `zh` / `en`                             |
+| `locale`                | `string` | 当前应用 locale，格式 `languageCode_COUNTRYCODE`，如 `zh-CN` |
+| `systemLocale`          | `string` | 系统首选 locale 原始字符串，如 `zh-CN`                       |
+| `timeZone`              | `string` | IANA 时区名，如 `Asia/Shanghai`                              |
+| `timeZoneIANA`          | `string` | 与 `timeZone` 相同，IANA 时区名                              |
+| `timezoneOffset`        | `string` | 时区偏移格式化字符串，如 `+08:00` / `-05:00`                 |
+| `timezoneOffsetMinutes` | `number` | 时区偏移分钟数，便于直接计算                                 |
+| `timezoneName`          | `string` | 系统时区缩写，如 `CST` / `EST`                               |
 
 ### `crypto` — 加密解密
 

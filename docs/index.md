@@ -1,5 +1,18 @@
 # Breeze 插件开发文档
 
+::: tip 使用 AI 协助开发时：请先 clone 到本地
+若你用 AI 助手写插件或改代码，建议把本仓库 **clone 到工作区**，让 AI 直接读本地 Markdown，而不是反复抓取在线页面。
+
+```bash
+git clone https://github.com/deretame/plugin-dev-docs.git
+```
+
+已有本地副本时，先 `git fetch` / `git pull` 再让 AI 阅读，避免对着过期文档改代码。
+
+- 仓库：<https://github.com/deretame/plugin-dev-docs>
+- 文档目录：`docs/guide/`（中文）、`docs/en/guide/`（英文）
+:::
+
 面向第三方插件开发者的接口与实现文档。
 
 文档聚焦插件接口契约、页面协议、调试与发布流程。
@@ -17,8 +30,8 @@
 ## 文档内容
 
 - 基于示例仓库直接开工
-- 运行时 API 参考（`fetch`、`bridge`、`crypto`、`BreezeHtml` 等）
-- `breeze-plugin-kit` 工具包使用说明（类型、`cache`、`pluginConfig`、`opencc`、HTML 解析等）
+- 运行时 API 参考（`fetch`、`bridge`、`crypto`、`Temporal`、时间向 `Intl`、`BreezeHtml` 等）
+- `breeze-plugin-kit` 工具包使用说明（类型、`cache`、`pluginConfig`、`opencc`、Temporal、Intl、HTML 解析等）
 - 所有 fnPath 的 TypeScript 类型定义与调用语义
 - Scheme + data 页面协议说明
 - 本地联调、调试模式、打包发布流程
@@ -42,8 +55,8 @@
 ## 推荐阅读顺序
 
 1. [快速开始](/guide/quick-start)
-2. [运行时 API](/guide/runtime-api)（重点看 `fetch`、`BreezeHtml`、`crypto`）
-3. [breeze-plugin-kit 工具包](/guide/plugin-kit)（重点看 `cache`、`pluginConfig`、HTML 解析类型）
+  2. [运行时 API](/guide/runtime-api)（重点看 `fetch`、`BreezeHtml`、`crypto`、`Temporal`、`Intl`）
+  3. [breeze-plugin-kit 工具包](/guide/plugin-kit)（重点看 `cache`、`pluginConfig`、Temporal、Intl、HTML 解析类型）
 4. [生命周期与结构](/guide/runtime-and-structure)
 5. [插件 API 契约](/guide/plugin-api-contract)
 6. [调试与发布](/guide/debug-and-release)

@@ -50,7 +50,7 @@ type PluginEnvelope = {
 
 Breeze 插件运行在 **QuickJS-NG** 引擎中，不是 Node.js 也不是浏览器环境。
 
-可用的全局 API（`fetch`、`bridge`、`crypto`、`console` 等）详见 [运行时 API](/guide/runtime-api)。
+可用的全局 API（`fetch`、`bridge`、`crypto`、`Temporal`、`console` 等）详见 [运行时 API](/guide/runtime-api)。
 
 ## 5) 调试与状态
 

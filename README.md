@@ -1,17 +1,20 @@
 # Breeze Plugin Docs
 
-插件开发文档（VitePress）。
+插件开发文档 / Plugin development docs (VitePress).
 
-## 开发
+- 中文：站点根路径 `/`
+- English: `/en/`
+
+## 开发 / Development
 
 ```bash
 pnpm install
-pnpm docs:dev
+pnpm dev
 ```
 
-## 构建
+## 构建 / Build
 
 ```bash
-pnpm docs:build
-pnpm docs:preview
+pnpm build
+pnpm preview
 ```
