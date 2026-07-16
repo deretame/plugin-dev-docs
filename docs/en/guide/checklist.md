@@ -33,7 +33,9 @@
 
 ## Release
 
-- [ ] Bundle and plugin UUID are aligned
+- [ ] Bundle and plugin UUID are aligned (`uuid` is stable; do not change casually)
 - [ ] Updated `version` in `buildPluginInfo()` in `src/get-info.ts`, then ran `pnpm build`
+- [ ] Update channel configured: `npmName` and/or `updateUrl` (unlisted plugins need at least one, or silent update and Sync will not work)
+- [ ] If using GitHub Release: tag matches `version`, `updateUrl` points to `.../releases/latest`
 - [ ] Completed at least one full real-device regression (home → search → detail → read)
 - [ ] Changelog covers new capabilities, behavior changes, and known limits

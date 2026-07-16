@@ -122,6 +122,9 @@ Where:
 
 In Breeze: Discover → top-right settings → Plugin Store → Browse & Install → **Network Install**, then paste the bundle URL.
 
+After install, use top-right **Sync** (check updates via `npmName` / `updateUrl`), or bottom **Update** to reinstall from a **network URL / local file**.  
+Unlisted plugins can still silent-update or sync if `getInfo` exposes an update channel. See [Debug & Release → Plugin Updates](/en/guide/debug-and-release#4-plugin-updates).
+
 ### Debug Mode
 
 1. After installing, return to Discover

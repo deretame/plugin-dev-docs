@@ -112,10 +112,16 @@ type InfoContract = {
   describe: string;
   version: string;
   home?: string;
+  /** Update channel: GitHub Release–like latest URL. Only api.github.com uses host proxies. */
   updateUrl?: string;
+  /** Update channel: npm package name. Preferred for latest lookup and CDN download. */
   npmName?: string;
   function: PluginFunctionItem[];
 };
+
+// Update behavior: see Debug & Release → Plugin Updates.
+// - Listed plugins: silent update uses catalog coordinates only
+// - Unlisted plugins: silent update / Sync use getInfo npmName / updateUrl
 
 type PluginFunctionItem = {
   id: string;

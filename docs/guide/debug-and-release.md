@@ -65,19 +65,100 @@ https://api.github.com/repos/<owner>/Breeze-plugin-<name>/releases/latest
 - 是否创建了 GitHub Release 且 tag 与版本号一致
 
 **不想发布到 GitHub 可以吗？**
-可以，但需要用户手动通过"网络安装"加载 bundle URL，不能通过插件列表发现和自动更新。
+可以。用户可通过「网络安装 / 本地安装」加载 bundle。  
+只要 `getInfo()` 提供了可用的 `npmName` 或 `updateUrl`，**即使不在插件列表中**，客户端仍可静默检查更新（见下方第 4 节）。  
+不在列表中时，用户无法通过商店发现你的插件，但更新通道仍然有效。
 
-## 4) 自动更新
+## 4) 插件更新
 
-客户端通过 `manifest.json` 的 `version` 字段检测是否存在新版本。版本号按 `x.y.z` 语义比较。
+客户端支持两条互不回退的更新路径：**云端列表** 与 **插件自身通道**（`npmName` / `updateUrl`）。  
+插件列表只负责发现与商店分发，**不是**更新资格的硬门槛。
 
-`updateUrl` 目前只支持 GitHub Release API 格式：
+### 4.1 更新通道字段
+
+在 `getInfo()`（以及发布用的 `manifest.json`）中建议提供：
+
+| 字段 | 作用 |
+|------|------|
+| `version` | 本地已安装版本；与远端版本做语义比较（`x.y.z`，可带 `v` 前缀） |
+| `npmName` | 优先通道：通过 npm 查询 `latest` 并走 CDN 下载 bundle |
+| `updateUrl` | 次要通道：拉取类似 GitHub Release API 的 JSON，再下载资产 |
+
+**推荐同时填写两者**：有 `npmName` 时优先走 npm/CDN；失败或未配置时再走 `updateUrl`（下载阶段的回退，与「列表 / 自身通道」分路无关）。
+
+`updateUrl` 推荐：
 
 ```text
 https://api.github.com/repos/<owner>/<repo>/releases/latest
 ```
 
-非 GitHub 仓库暂不支持自动更新。
+自定义 `updateUrl` 也可以，返回 JSON 的**最小期望值**如下（字段名对齐 GitHub Release API）：
+
+```json
+{
+  "tag_name": "1.2.3",
+  "assets": [
+    {
+      "name": "my-plugin.bundle.cjs.br",
+      "browser_download_url": "https://example.com/my-plugin.bundle.cjs.br"
+    }
+  ]
+}
+```
+
+说明：
+
+- `tag_name`：远端版本（没有时可用 `name`）
+- `assets[]`：至少一项；每项需有 `name`、`browser_download_url`
+- 资产优先选 `*.bundle.cjs.br`，其次 `*.cjs` / `*.bundle.cjs`
+
+> **加速规则**：仅当 `updateUrl` 是 `api.github.com` 时，客户端才会套用 GitHub 代理加速；其它域名一律直连，不会错误拼接代理前缀。
+
+### 4.2 静默自动更新（启动后后台）
+
+应用启动后会调度一次静默更新，逻辑概要：
+
+1. 拉取云端插件列表（失败则全部改走自身通道）
+2. 对每个**已安装且未删除**的插件：
+   - **在列表中**：只用列表里的 `version` / `npmName` / `updateUrl`，**不回退**到本地 `getInfo`
+   - **不在列表中**：只用本地缓存的 `getInfo`（`npmName` 优先，否则 `updateUrl`），**不回退**到列表
+3. 远端版本 `>` 本地版本时才下载；下载后执行 `getInfo`，**uuid 必须与当前插件一致**，否则拒绝安装
+4. 任意成功更新后，都会重新执行 `getInfo` 并写回本地缓存
+
+**不在列表中的插件**如何获得更新能力：
+
+1. 在 `getInfo()` 中填写 `npmName` 和/或 `updateUrl`，并正确维护 `version` / `uuid`
+2. 发布 npm 包，或保证 `updateUrl` 可返回最新 Release 信息
+3. 用户通过本地/网络安装后，静默更新会自动检查自身通道
+4. 若本地还没有 `getInfo` 缓存，客户端会用已安装脚本再跑一次 `getInfo` 并缓存
+
+### 4.3 手动更新（用户侧）
+
+在 **单个插件的设置页**（发现页 → 插件 → 设置）中：
+
+| 入口 | 位置 | 行为 |
+|------|------|------|
+| **同步** | 右上角图标 | 固定走 `npmName` / `updateUrl` 检查并下载；有新版本才安装 |
+| **更新** | 底部「插件管理」→ 对话框 | 手动重装入口（不判断「是否有新版本」）：从网络安装 / 从本地安装 / 取消；安装前 `getInfo`，**uuid 与当前插件不一致则拒绝** |
+
+说明：
+
+- 插件自身设置 / 用户信息 / 操作在上半部分；底部「插件管理」含版本、更新、调试、删除
+- **同步** 是「检查更新」：依赖插件 `getInfo` 里的 `npmName` / `updateUrl`（与是否在商店列表无关）
+- **更新** 是「手动安装/重装」的便捷入口（例如网络差、自己下好了包、或临时换包）：
+  - **从网络安装**：用户输入一个 bundle URL，宿主下载并安装
+  - **从本地安装**：用户自选已下载的 `.js` / `.cjs` / `.br` 文件安装
+- 两种手动安装都会校验 uuid，避免把别的插件装到当前条目上
+- 它**不是**「从商店列表自动拉包」；自动检查更新请用 **同步**
+
+### 4.4 开发者检查清单（更新相关）
+
+- [ ] `getInfo().uuid` 稳定，**永远不要随意更换**（更换等于新插件）
+- [ ] 每次发版先改 `version`，再 `pnpm run build` 并发布
+- [ ] GitHub Release 的 tag 与 `version` 一致
+- [ ] `npmName` 与 `package.json` 的 `name` 一致（若走 npm）
+- [ ] `updateUrl` 可访问；非 GitHub API 时勿依赖宿主加速
+- [ ] 未进列表时，务必在 `getInfo` 中提供 `npmName` 或 `updateUrl`，否则静默更新与「同步」均无法工作
 
 ## 5) 故障定位
 

@@ -67,19 +67,100 @@ Collection can lag by 2–4 hours. If it still does not appear, check:
 - A GitHub Release exists with a tag matching the version
 
 **Can I skip GitHub?**
-Yes, but users must load the bundle URL via “Network Install”; discovery and auto-update via the plugin list will not work.
+Yes. Users can install via “Network Install” or “Local Install”.  
+As long as `getInfo()` provides a working `npmName` or `updateUrl`, the client can still check for updates **even if the plugin is not in the store list** (see section 4).  
+Without the list, users cannot discover the plugin in the store, but the update channel still works.
 
-## 4) Auto-Update
+## 4) Plugin Updates
 
-The client uses `manifest.json` `version` to detect updates. Versions are compared as semantic `x.y.z`.
+The client has two non-fallback update paths: the **cloud catalog** and the **plugin’s own channel** (`npmName` / `updateUrl`).  
+The plugin list is for discovery and store distribution only — it is **not** a hard gate for updates.
 
-`updateUrl` currently supports only the GitHub Release API format:
+### 4.1 Update channel fields
+
+Provide these in `getInfo()` (and in published `manifest.json`):
+
+| Field | Role |
+|------|------|
+| `version` | Installed version; compared semantically with remote (`x.y.z`, optional `v` prefix) |
+| `npmName` | Preferred channel: query npm `latest` and download the bundle via CDN |
+| `updateUrl` | Secondary channel: fetch a GitHub Release–like JSON, then download assets |
+
+**Prefer setting both.** When `npmName` is set, npm/CDN is tried first; download may fall back to `updateUrl` if CDN fails (this is download fallback only, separate from catalog vs self-channel routing).
+
+Recommended `updateUrl`:
 
 ```text
 https://api.github.com/repos/<owner>/<repo>/releases/latest
 ```
 
-Non-GitHub repositories do not support auto-update yet.
+Custom `updateUrl` is allowed. **Minimal expected JSON** (field names match the GitHub Release API):
+
+```json
+{
+  "tag_name": "1.2.3",
+  "assets": [
+    {
+      "name": "my-plugin.bundle.cjs.br",
+      "browser_download_url": "https://example.com/my-plugin.bundle.cjs.br"
+    }
+  ]
+}
+```
+
+Notes:
+
+- `tag_name`: remote version (falls back to `name` if missing)
+- `assets[]`: at least one item; each needs `name` and `browser_download_url`
+- Preferred assets: `*.bundle.cjs.br`, then `*.cjs` / `*.bundle.cjs`
+
+> **Proxy rule:** GitHub acceleration applies only when `updateUrl` is on `api.github.com`. Other hosts are requested directly (no proxy prefix rewriting).
+
+### 4.2 Silent auto-update (background after launch)
+
+After launch the app schedules a silent update pass:
+
+1. Fetch the cloud plugin catalog (on failure, all plugins use the self channel)
+2. For each **installed, non-deleted** plugin:
+   - **In the catalog:** use only catalog `version` / `npmName` / `updateUrl` — **no** fallback to local `getInfo`
+   - **Not in the catalog:** use only cached local `getInfo` (`npmName` first, else `updateUrl`) — **no** fallback to the catalog
+3. Download only when remote version `>` local; after download, run `getInfo` and **reject if uuid does not match**
+4. After any successful update, re-run `getInfo` and persist the cache
+
+**How plugins outside the list get updates:**
+
+1. Fill `npmName` and/or `updateUrl` in `getInfo()`, and keep `version` / `uuid` correct
+2. Publish to npm, or ensure `updateUrl` returns the latest release info
+3. After the user installs via local/network install, silent update checks the self channel
+4. If the local `getInfo` cache is empty, the client runs `getInfo` once from the installed script and caches it
+
+### 4.3 Manual update (user-facing)
+
+On the **per-plugin settings page** (Discover → plugin → settings):
+
+| Action | Where | Behavior |
+|------|------|------|
+| **Sync** | Top-right icon | Check + download via `npmName` / `updateUrl`; installs only when remote is newer |
+| **Update** | Bottom “Plugin management” → dialog | Manual reinstall entry (does **not** check “is there a new version”): Install from network / Install from local / Cancel; runs `getInfo` and **rejects on uuid mismatch** |
+
+Notes:
+
+- Plugin-defined settings / user info / actions stay on top; bottom “Plugin management” has version, update, debug, delete
+- **Sync** means “check for updates” via `getInfo`’s `npmName` / `updateUrl` (whether or not the plugin is in the store list)
+- **Update** is a convenience path for **manual install/reinstall** — e.g. poor network, user already has a package, or temporarily swapping a build:
+  - **Install from network**: user pastes a bundle URL; the host downloads and installs it
+  - **Install from local**: user picks a downloaded `.js` / `.cjs` / `.br` file
+- Both manual install paths verify uuid so a different plugin cannot overwrite the current one
+- This is **not** “pull from the store catalog”; use **Sync** for automatic update checks
+
+### 4.4 Developer checklist (updates)
+
+- [ ] Keep `getInfo().uuid` stable — **never change it casually** (a new uuid is a new plugin)
+- [ ] Bump `version` before every release, then `pnpm run build` and publish
+- [ ] GitHub Release tag matches `version`
+- [ ] `npmName` matches `package.json` `name` when using npm
+- [ ] `updateUrl` is reachable; do not rely on host proxies for non–GitHub API URLs
+- [ ] If the plugin is unlisted, `getInfo` **must** provide `npmName` or `updateUrl`, or silent update and **Sync** will not work
 
 ## 5) Troubleshooting
 

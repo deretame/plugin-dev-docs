@@ -112,10 +112,16 @@ type InfoContract = {
   describe: string;
   version: string;
   home?: string;
+  /** 更新通道：类似 GitHub Release API 的 latest 地址。仅 api.github.com 会走宿主加速。 */
   updateUrl?: string;
+  /** 更新通道：npm 包名。优先用于查询 latest 与 CDN 下载。 */
   npmName?: string;
   function: PluginFunctionItem[];
 };
+
+// 更新行为说明见「调试与发布 → 插件更新」：
+// - 在云端列表中的插件：静默更新只读列表坐标
+// - 不在列表中的插件：静默更新 /「同步」读 getInfo 的 npmName / updateUrl
 
 type PluginFunctionItem = {
   id: string;

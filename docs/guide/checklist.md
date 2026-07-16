@@ -33,7 +33,9 @@
 
 ## 发布
 
-- [ ] bundle 与插件 UUID 对齐
+- [ ] bundle 与插件 UUID 对齐（`uuid` 稳定，勿随意更换）
 - [ ] 已更新 `src/get-info.ts` 中 `buildPluginInfo()` 的 `version` 字段，再执行 `pnpm build`
+- [ ] 已配置更新通道：`npmName` 和/或 `updateUrl`（未进列表时二者至少其一，否则静默更新与「同步」无效）
+- [ ] 若走 GitHub Release：tag 与 `version` 一致，`updateUrl` 指向 `.../releases/latest`
 - [ ] 至少完成一次真实设备完整回归（首页 -> 搜索 -> 详情 -> 阅读）
 - [ ] 变更记录已写清楚（新增能力、行为变化、已知限制）
