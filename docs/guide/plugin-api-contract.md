@@ -72,9 +72,11 @@ type PluginEnvelope = {
 | `getChapter`              | 下载章节内容                       |
 | `fetchImageBytes`         | 阅读/下载时获取图片二进制          |
 | `toggleLike`              | 详情页点点赞                       |
-| `toggleFavorite`          | 详情页点收藏                       |
-| `listFavoriteFolders`     | 收藏后需选择收藏夹                 |
-| `moveFavoriteToFolder`    | 用户确认收藏夹                     |
+| `startFavoriteAction`     | 开始云端收藏工作流                 |
+| `continueFavoriteAction`  | 继续云端收藏工作流或处理用户输入   |
+| `toggleFavorite`          | 旧版详情页收藏兼容入口             |
+| `listFavoriteFolders`     | 旧版收藏后选择收藏夹                 |
+| `moveFavoriteToFolder`    | 旧版用户确认收藏夹                   |
 | `getCommentFeed`          | 打开评论面板 / 翻页                |
 | `loadCommentReplies`      | 展开评论回复                       |
 | `postComment`             | 发送主评论                         |
@@ -477,6 +479,11 @@ type MoveFavoriteToFolderPayload = {
 
 // 返回 { ok: boolean }
 ```
+
+以上三个函数属于旧版收藏协议。新插件应实现 `startFavoriteAction` 和
+`continueFavoriteAction`，以支持选择/创建收藏夹、从指定收藏夹移除、移动、取消和部分成功。
+
+完整定义和实现示例见[云端收藏工作流](/guide/favorite-workflow)。
 
 ### 评论流
 

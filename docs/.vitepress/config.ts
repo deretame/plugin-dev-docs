@@ -5,6 +5,7 @@ const zhNav = [
   { text: "运行时 API", link: "/guide/runtime-api" },
   { text: "工具包", link: "/guide/plugin-kit" },
   { text: "API 契约", link: "/guide/plugin-api-contract" },
+  { text: "云端收藏", link: "/guide/favorite-workflow" },
   { text: "调试与发布", link: "/guide/debug-and-release" }
 ];
 
@@ -32,7 +33,10 @@ const zhSidebar = [
   },
   {
     text: "接口协议",
-    items: [{ text: "插件 API 契约", link: "/guide/plugin-api-contract" }]
+    items: [
+      { text: "插件 API 契约", link: "/guide/plugin-api-contract" },
+      { text: "云端收藏工作流", link: "/guide/favorite-workflow" }
+    ]
   },
   {
     text: "调试与交付",
