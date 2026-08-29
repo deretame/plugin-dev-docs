@@ -1,0 +1,18 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.docs.category.开始": {
+    "message": "开始",
+    "description": "The label for category '开始' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.接口协议": {
+    "message": "接口协议",
+    "description": "The label for category '接口协议' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.调试与交付": {
+    "message": "调试与交付",
+    "description": "The label for category '调试与交付' in sidebar 'docs'"
+  }
+}

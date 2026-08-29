@@ -123,7 +123,7 @@ Where:
 In Breeze: Discover → top-right settings → Plugin Store → Browse & Install → **Network Install**, then paste the bundle URL.
 
 After install, use top-right **Sync** (check updates via `npmName` / `updateUrl`), or bottom **Update** to reinstall from a **network URL / local file**.  
-Unlisted plugins can still silent-update or sync if `getInfo` exposes an update channel. See [Debug & Release → Plugin Updates](/en/guide/debug-and-release#4-plugin-updates).
+Unlisted plugins can still silent-update or sync if `getInfo` exposes an update channel. See [Debug & Release → Plugin Updates](/guide/debug-and-release#4-plugin-updates).
 
 ### Debug Mode
 
@@ -181,4 +181,4 @@ Output is under `dist/`.
 
 ## 8) Next Reading
 
-Continue with [Runtime API](/en/guide/runtime-api), [breeze-plugin-kit Toolkit](/en/guide/plugin-kit), [Plugin API Contract](/en/guide/plugin-api-contract), and [Lifecycle & Structure](/en/guide/runtime-and-structure).
+Continue with [Runtime API](/guide/runtime-api), [breeze-plugin-kit Toolkit](/guide/plugin-kit), [Plugin API Contract](/guide/plugin-api-contract), and [Lifecycle & Structure](/guide/runtime-and-structure).

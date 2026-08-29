@@ -1,0 +1,22 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.docs.category.开始": {
+    "message": "Getting Started",
+    "description": "The label for category '开始' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.接口协议": {
+    "message": "API Protocol",
+    "description": "The label for category '接口协议' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.调试与交付": {
+    "message": "Debug & Delivery",
+    "description": "The label for category '调试与交付' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.运行时 API": {
+    "message": "Runtime API",
+    "description": "The label for category '运行时 API' in sidebar 'docs'"
+  }
+}

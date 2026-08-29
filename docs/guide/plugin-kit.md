@@ -75,7 +75,7 @@ const zdt: Temporal.ZonedDateTime =
 const instant: Temporal.Instant = new Date().toTemporalInstant();
 ```
 
-完整运行时说明见 [运行时 API · Temporal](/guide/runtime-api#temporal)。
+完整运行时说明见 [运行时 API · Temporal](/guide/runtime-api/time-and-intl#temporal)。
 
 ### 时间向 Intl 类型
 
@@ -90,7 +90,7 @@ const text = new Intl.DateTimeFormat("zh-CN", {
 const zones = Intl.supportedValuesOf("timeZone"); // string[]
 ```
 
-完整说明见 [运行时 API · Intl](/guide/runtime-api#intl)。
+完整说明见 [运行时 API · Intl](/guide/runtime-api/time-and-intl#intl)。
 
 如果你需要为 `BreezeHtml.load()` 的返回值标注类型，可以导入兼容别名：
 

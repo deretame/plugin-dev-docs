@@ -1,6 +1,12 @@
+---
+id: home
+slug: /
+sidebar_label: 文档首页
+---
+
 # Breeze 插件开发文档
 
-::: tip 使用 AI 协助开发时：请先 clone 到本地
+:::tip 使用 AI 协助开发时：请先 clone 到本地
 若你用 AI 助手写插件或改代码，建议把本仓库 **clone 到工作区**，让 AI 直接读本地 Markdown，而不是反复抓取在线页面。
 
 ```bash
@@ -9,8 +15,8 @@ git clone https://github.com/deretame/plugin-dev-docs.git
 
 已有本地副本时，先 `git fetch` / `git pull` 再让 AI 阅读，避免对着过期文档改代码。
 
-- 仓库：<https://github.com/deretame/plugin-dev-docs>
-- 文档目录：`docs/guide/`（中文）、`docs/en/guide/`（英文）
+- 仓库：[github.com/deretame/plugin-dev-docs](https://github.com/deretame/plugin-dev-docs)
+- 文档目录：`docs/guide/`（中文）、`i18n/en/docusaurus-plugin-content-docs/current/guide/`（英文）
 :::
 
 面向第三方插件开发者的接口与实现文档。

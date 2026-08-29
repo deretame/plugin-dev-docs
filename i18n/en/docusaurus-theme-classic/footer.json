@@ -1,0 +1,18 @@
+{
+  "link.title.文档": {
+    "message": "Docs",
+    "description": "The title of the footer links column with title=文档 in the footer"
+  },
+  "link.item.label.插件 API 契约": {
+    "message": "Plugin API Contract",
+    "description": "The label of footer link with label=插件 API 契约 linking to /guide/plugin-api-contract"
+  },
+  "link.item.label.调试与发布": {
+    "message": "Debug & Release",
+    "description": "The label of footer link with label=调试与发布 linking to /guide/debug-and-release"
+  },
+  "copyright": {
+    "message": "Copyright © 2026 Breeze contributors.",
+    "description": "The footer copyright"
+  }
+}

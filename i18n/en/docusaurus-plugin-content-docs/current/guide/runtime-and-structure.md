@@ -50,7 +50,7 @@ Notes:
 
 Breeze plugins run in the **QuickJS-NG** engine — not Node.js and not a browser.
 
-Available globals (`fetch`, `bridge`, `crypto`, `Temporal`, `console`, etc.) are documented in [Runtime API](/en/guide/runtime-api).
+Available globals (`fetch`, `bridge`, `crypto`, `Temporal`, `console`, etc.) are documented in [Runtime API](/guide/runtime-api).
 
 ## 5) Debugging & State
 
@@ -66,7 +66,7 @@ Store data by lifetime:
 - Short-lived data in `cache` (lives with the host process; survives QuickJS rebuilds)
 - Long-lived data in `config` (survives app restarts)
 
-Both are provided by `breeze-plugin-kit`; see [breeze-plugin-kit Toolkit](/en/guide/plugin-kit).
+Both are provided by `breeze-plugin-kit`; see [breeze-plugin-kit Toolkit](/guide/plugin-kit).
 
 ## 6) Compatibility
 

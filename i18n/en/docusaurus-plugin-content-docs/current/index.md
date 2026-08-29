@@ -1,6 +1,12 @@
+---
+id: home
+slug: /
+sidebar_label: Home
+---
+
 # Breeze Plugin Development Docs
 
-::: tip Using AI to help develop? Clone this repo first
+:::tip Using AI to help develop? Clone this repo first
 If you use an AI assistant to write or change plugin code, **clone this repository into your workspace** so the AI can read the local Markdown — instead of scraping the live site repeatedly.
 
 ```bash
@@ -9,8 +15,8 @@ git clone https://github.com/deretame/plugin-dev-docs.git
 
 If you already have a local copy, run `git fetch` / `git pull` before letting the AI read it, so you are not working against outdated docs.
 
-- Repository: <https://github.com/deretame/plugin-dev-docs>
-- Docs: `docs/guide/` (Chinese), `docs/en/guide/` (English)
+- Repository: [github.com/deretame/plugin-dev-docs](https://github.com/deretame/plugin-dev-docs)
+- Docs: `docs/guide/` (Chinese), `i18n/en/docusaurus-plugin-content-docs/current/guide/` (English)
 :::
 
 Interface and implementation docs for third-party plugin authors.
@@ -54,10 +60,10 @@ Clone the example repo and adapt it for your plugin instead of scaffolding from 
 
 ## Suggested Reading Order
 
-1. [Quick Start](/en/guide/quick-start)
-  2. [Runtime API](/en/guide/runtime-api) (focus on `fetch`, `BreezeHtml`, `crypto`, `Temporal`, `Intl`)
-  3. [breeze-plugin-kit Toolkit](/en/guide/plugin-kit) (focus on `cache`, `pluginConfig`, Temporal, Intl, HTML parsing types)
-4. [Lifecycle & Structure](/en/guide/runtime-and-structure)
-5. [Plugin API Contract](/en/guide/plugin-api-contract)
-6. [Debug & Release](/en/guide/debug-and-release)
-7. [Delivery Checklist](/en/guide/checklist)
+1. [Quick Start](/guide/quick-start)
+  2. [Runtime API](/guide/runtime-api) (focus on `fetch`, `BreezeHtml`, `crypto`, `Temporal`, `Intl`)
+  3. [breeze-plugin-kit Toolkit](/guide/plugin-kit) (focus on `cache`, `pluginConfig`, Temporal, Intl, HTML parsing types)
+4. [Lifecycle & Structure](/guide/runtime-and-structure)
+5. [Plugin API Contract](/guide/plugin-api-contract)
+6. [Debug & Release](/guide/debug-and-release)
+7. [Delivery Checklist](/guide/checklist)

@@ -159,7 +159,7 @@ type ComicListRequest = {
 };
 ```
 
-Prefer `openComicList` as feature entries. Examples: [Quick Start](/en/guide/quick-start).
+Prefer `openComicList` as feature entries. Examples: [Quick Start](/guide/quick-start).
 
 ### `searchComic(payload)`
 

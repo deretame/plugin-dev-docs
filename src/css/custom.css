@@ -1,0 +1,62 @@
+/**
+ * Custom styles for the Breeze plugin documentation.
+ * The classic theme provides the base layout and dark mode.
+ */
+
+:root {
+  --ifm-color-primary: #2563eb;
+  --ifm-color-primary-dark: #1d4ed8;
+  --ifm-color-primary-darker: #1e40af;
+  --ifm-color-primary-darkest: #1e3a8a;
+  --ifm-color-primary-light: #3b82f6;
+  --ifm-color-primary-lighter: #60a5fa;
+  --ifm-color-primary-lightest: #93c5fd;
+  --ifm-h1-font-size: 2.5rem;
+  --ifm-heading-line-height: 1.3;
+  --ifm-line-height-base: 1.7;
+}
+
+[data-theme="dark"] {
+  --ifm-color-primary: #60a5fa;
+  --ifm-color-primary-dark: #3b82f6;
+  --ifm-color-primary-darker: #2563eb;
+  --ifm-color-primary-darkest: #1d4ed8;
+  --ifm-color-primary-light: #93c5fd;
+  --ifm-color-primary-lighter: #bfdbfe;
+  --ifm-color-primary-lightest: #dbeafe;
+}
+
+/* Keep the landing page close to the former VitePress reading width and rhythm. */
+.markdown h1:first-child {
+  margin-bottom: 1.5rem;
+}
+
+.theme-admonition-tip {
+  border: 0;
+  border-radius: 0.75rem;
+  background: #eef0ff;
+  color: #3f414d;
+  padding: 1.5rem 2rem;
+}
+
+.theme-admonition-tip .admonitionHeading {
+  color: #3f414d;
+  font-size: 1.2rem;
+}
+
+.theme-admonition-tip .admonitionHeading svg {
+  display: none;
+}
+
+.theme-admonition-tip p:last-child {
+  margin-bottom: 0;
+}
+
+[data-theme="dark"] .theme-admonition-tip {
+  background: #272942;
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .theme-admonition-tip .admonitionHeading {
+  color: #f3f4f6;
+}

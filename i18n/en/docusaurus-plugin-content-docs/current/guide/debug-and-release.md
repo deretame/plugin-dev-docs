@@ -2,7 +2,7 @@
 
 ## 1) Debugging
 
-See [Quick Start](/en/guide/quick-start) for step-by-step debug mode setup. Key points:
+See [Quick Start](/guide/quick-start) for step-by-step debug mode setup. Key points:
 
 - Enable debug mode on the plugin settings page and paste the bundle URL from the dev server
 - When the bundle changes, the host recreates the QuickJS instance; in-memory state is not preserved
@@ -174,7 +174,7 @@ Fix: ensure `export default { ... }` includes the key, with casing matching `fnP
 
 Cause: the return structure does not match the page type.
 
-Fix: align fields with the TypeScript types in [API Contract](/en/guide/plugin-api-contract).
+Fix: align fields with the TypeScript types in [API Contract](/guide/plugin-api-contract).
 
 ### `plugin_not_found` / `bundle_js_missing_db`
 

@@ -64,7 +64,7 @@ const zdt: Temporal.ZonedDateTime =
 const instant: Temporal.Instant = new Date().toTemporalInstant();
 ```
 
-Full runtime notes: [Runtime API · Temporal](/en/guide/runtime-api#temporal).
+Full runtime notes: [Runtime API · Temporal](/guide/runtime-api/time-and-intl#temporal).
 
 ### Time-focused Intl Types
 
@@ -79,7 +79,7 @@ const text = new Intl.DateTimeFormat("zh-CN", {
 const zones = Intl.supportedValuesOf("timeZone"); // string[]
 ```
 
-Full notes: [Runtime API · Intl](/en/guide/runtime-api#intl).
+Full notes: [Runtime API · Intl](/guide/runtime-api/time-and-intl#intl).
 
 To type the return value of `BreezeHtml.load()`, import compatibility aliases:
 
