@@ -18,9 +18,14 @@ type PluginPayload<T extends Record<string, unknown>> = T & {
 例如 `searchComic` 的实际签名：
 
 ```ts
-import type { SearchComicPayload, SearchResultContract } from "breeze-plugin-kit";
+import type {
+  SearchComicPayload,
+  SearchResultContract,
+} from "breeze-plugin-kit";
 
-async function searchComic(payload: SearchComicPayload): Promise<SearchResultContract> {}
+async function searchComic(
+  payload: SearchComicPayload,
+): Promise<SearchResultContract> {}
 ```
 
 所有参数类型定义由 `breeze-plugin-kit` 提供。下文每个 `fnPath` 会标注其对应的 Payload 和返回类型。
@@ -31,11 +36,11 @@ async function searchComic(payload: SearchComicPayload): Promise<SearchResultCon
 
 ```ts
 type PluginEnvelope = {
-  source: string;                       // 插件 ID
-  scheme?: Record<string, unknown>;     // 页面渲染协议
-  data?: Record<string, unknown>;       // 业务数据
-  extern?: Record<string, unknown>;     // 透传上下文
-  [key: string]: unknown;               // 其他平铺字段（如 comicId、paging）
+  source: string; // 插件 ID
+  scheme?: Record<string, unknown>; // 页面渲染协议
+  data?: Record<string, unknown>; // 业务数据
+  extern?: Record<string, unknown>; // 透传上下文
+  [key: string]: unknown; // 其他平铺字段（如 comicId、paging）
 };
 ```
 
@@ -68,6 +73,7 @@ type PluginEnvelope = {
 | `getInfo`                 | 发现页加载插件卡片                 |
 | `searchComic`             | 搜索页输入关键词 / 翻页 / 高级搜索 |
 | `getComicDetail`          | 打开漫画详情页                     |
+| `getPreview`              | 详情页加载漫画预览                 |
 | `getReadSnapshot`         | 阅读页初始化、切章                 |
 | `getChapter`              | 下载章节内容                       |
 | `fetchImageBytes`         | 阅读/下载时获取图片二进制          |
@@ -75,8 +81,8 @@ type PluginEnvelope = {
 | `startFavoriteAction`     | 开始云端收藏工作流                 |
 | `continueFavoriteAction`  | 继续云端收藏工作流或处理用户输入   |
 | `toggleFavorite`          | 旧版详情页收藏兼容入口             |
-| `listFavoriteFolders`     | 旧版收藏后选择收藏夹                 |
-| `moveFavoriteToFolder`    | 旧版用户确认收藏夹                   |
+| `listFavoriteFolders`     | 旧版收藏后选择收藏夹               |
+| `moveFavoriteToFolder`    | 旧版用户确认收藏夹                 |
 | `getCommentFeed`          | 打开评论面板 / 翻页                |
 | `loadCommentReplies`      | 展开评论回复                       |
 | `postComment`             | 发送主评论                         |
@@ -248,6 +254,7 @@ type ComicDetailNormal = {
     metadata: MetadataListItem[];
     extern: Record<string, unknown>;
   };
+  preview?: PreviewCapability;
   eps: ChapterSummary[]; // 章节列表
   recommend: RecommendItem[];
   totalViews: number;
@@ -260,6 +267,11 @@ type ComicDetailNormal = {
   allowCollected: boolean;
   allowDownload: boolean;
   extern: Record<string, unknown>;
+};
+
+type PreviewCapability = {
+  enabled: boolean;
+  extern?: Record<string, unknown>;
 };
 
 // 基础类型
@@ -289,12 +301,12 @@ type MetadataListItem = { type: string; name: string; value: ActionItem[] };
 
 ```ts
 type ChapterSummary = {
-  id: string;               // 章节自身标识
-  requestId: string;        // 宿主调用 getReadSnapshot / getChapter 时用于请求章节
-  logicalKey: string;       // 宿主内部用于识别章节（大部分时候可与 requestId 相同）
+  id: string; // 章节自身标识
+  requestId: string; // 宿主调用 getReadSnapshot / getChapter 时用于请求章节
+  logicalKey: string; // 宿主内部用于识别章节（大部分时候可与 requestId 相同）
   storageChapterId: string; // 下载到本地后的目录名（大部分时候可与 requestId 相同）
-  name: string;             // 章节名
-  order: number;            // 章节顺序
+  name: string; // 章节名
+  order: number; // 章节顺序
   extern: Record<string, unknown>; // 插件透传数据
 };
 
@@ -313,7 +325,7 @@ type ChapterPage = {
 // 入参 ReadSnapshotPayload
 type ReadSnapshotPayload = {
   comicId?: string;
-  chapterId?: string | number;  // 即 requestId
+  chapterId?: string | number; // 即 requestId
   extern?: Record<string, unknown>;
 };
 
@@ -338,7 +350,6 @@ type ReadSnapshotContract = {
   };
 };
 
-
 type ChapterWithPages = ChapterSummary & { pages: ChapterPage[] };
 ```
 
@@ -351,7 +362,7 @@ type ChapterWithPages = ChapterSummary & { pages: ChapterPage[] };
 type FetchImageBytesPayload = {
   url?: string;
   timeoutMs?: number;
-  taskGroupKey?: string;  // 下载任务组标识，宿主可通过它批量取消
+  taskGroupKey?: string; // 下载任务组标识，宿主可通过它批量取消
   extern?: Record<string, unknown>;
 };
 
@@ -422,7 +433,52 @@ type ChapterContentContract = {
 
 ---
 
-## 3. 社交 API
+## 3. 可选能力
+
+### `getPreview(payload)`
+
+`preview` 是可选能力字段。支持预览的图源在 `data.normal` 中返回
+`preview: { enabled: true }`；不支持预览时省略该字段。
+
+详情页确认 `normal.preview.enabled` 后，宿主按页调用插件的 `getPreview`：
+
+```ts
+type PreviewPayload = {
+  comicId?: string;
+  page?: number;
+  extern?: Record<string, unknown>;
+};
+
+type PreviewItem = {
+  id: string;
+  name: string;
+  path: string;
+  url: string;
+  extern: Record<string, unknown>;
+};
+
+type PreviewContentContract = {
+  source: string;
+  comicId: string;
+  extern: Record<string, unknown> | null;
+  scheme: { version: "1.0.0"; type: "previewContent"; source: string };
+  data: {
+    preview: {
+      items: PreviewItem[];
+      paging: PagingInfo;
+    };
+  };
+};
+```
+
+首次请求使用详情返回的 `normal.preview.extern`；插件返回的顶层 `extern`
+会作为下一次请求的 `extern` 原样传回，可用于保存分页游标或会话状态。
+
+当 `paging.hasReachedMax` 为 `true` 时，宿主停止继续请求。
+
+---
+
+## 4. 社交 API
 
 ### `toggleLike(payload)`
 
@@ -436,7 +492,6 @@ type ToggleLikePayload = {
 
 // 返回 ToggleLikeResult
 type ToggleLikeResult = { liked: boolean };
-
 ```
 
 ### `toggleFavorite(payload)`
@@ -454,7 +509,6 @@ type ToggleFavoriteResult = {
   favorited: boolean;
   nextStep: "none" | "selectFolder";
 };
-
 ```
 
 `nextStep` 为 `selectFolder` 时，宿主会继续调用 `listFavoriteFolders` 和 `moveFavoriteToFolder`。
@@ -577,7 +631,7 @@ type CommentMutationContract = {
 
 ---
 
-## 4. 发现与列表
+## 5. 发现与列表
 
 ### `getAdvancedSearchScheme()`
 
@@ -663,7 +717,7 @@ type FilterOption = {
   label: string;
   value: unknown;
   result?: {
-    core?: Record<string, unknown>;   // 合并到列表请求 core
+    core?: Record<string, unknown>; // 合并到列表请求 core
     extern?: Record<string, unknown>; // 合并到列表请求 extern
     params?: Record<string, unknown>; // UI 参数
     [key: string]: unknown;
@@ -672,11 +726,9 @@ type FilterOption = {
 };
 ```
 
-
-
 ---
 
-## 5. 设置
+## 6. 设置
 
 ### `getSettingsBundle()`
 
@@ -753,7 +805,7 @@ type UserInfoBundleContract = {
 
 ---
 
-## 6. 数据流与调用链
+## 7. 数据流与调用链
 
 ### 6.1 搜索流程：高级搜索 → `searchComic`
 
@@ -766,6 +818,7 @@ type UserInfoBundleContract = {
 ```
 
 具体来说：
+
 - `getAdvancedSearchScheme().scheme.fields[].key` 定义了筛选参数名（如 `sortBy`、`categories`）
 - 用户选择后，选中的 key-value 会放入 `searchComic` 的 `extern` 字段
 - 插件在 `searchComic` 中通过 `extern.sortBy` / `extern.categories` 读取筛选值
@@ -779,6 +832,7 @@ type UserInfoBundleContract = {
 ```
 
 合并规则：
+
 - `result.core` 中的字段**直接写入**下一次列表请求的顶层
 - `result.extern` 中的字段**合并进**下一次列表请求的 `extern`
 
@@ -799,8 +853,8 @@ type UserInfoBundleContract = {
 ```ts
 type SettingsFieldCallbackPayload = {
   extern: Record<string, unknown>;
-  key: string;           // 字段 key，如 "auth.account"
-  value: unknown;        // 新值，可能是单值也可能是数组
+  key: string; // 字段 key，如 "auth.account"
+  value: unknown; // 新值，可能是单值也可能是数组
 };
 ```
 
@@ -816,6 +870,7 @@ type SettingsFieldCallbackPayload = {
 - `multiChoice` 字段的 `value` 为数组，例如 `onHiddenTagsChanged` 接收到的就是标签数组。
 
 示例仓库中的对应回调：
+
 - 文本/密码变更 → `onAuthChanged`
 - 开关变更 → `onRememberChanged`、`onAdultChanged`
 - choice 变更 → `onThemeChanged`、`onQualityChanged`

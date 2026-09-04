@@ -3,7 +3,7 @@
 `breeze-plugin-kit` is the official Breeze plugin toolkit. It includes:
 
 1. **TypeScript type declarations**: contract types for every `fnPath` and runtime global API types.
-2. **Common helpers**: wrappers over `bridge` routes such as `cache`, `pluginConfig`, `opencc`, `flutterTools`, and `runtime`.
+2. **Common helpers**: wrappers over `bridge` routes such as `cache`, `pluginConfig`, `opencc`, `flutterTools`, `runtime`, and `pictureTools`.
 
 The example repository ships it as a standalone npm package that new plugins can install directly.
 
@@ -34,6 +34,8 @@ import type {
   SearchComicPayload,
   SearchResultContract,
   ComicDetailContract,
+  PreviewPayload,
+  PreviewContentContract,
   ChapterContentContract,
   ReadSnapshotContract,
   FetchImageBytesPayload,
@@ -270,6 +272,35 @@ await flutterTools.showToast({
 | `timezoneOffset`        | `string` | Offset string, e.g. `+08:00` / `-05:00`                |
 | `timezoneOffsetMinutes` | `number` | Offset in minutes                                      |
 | `timezoneName`          | `string` | System zone abbreviation, e.g. `CST` / `EST`           |
+
+### `pictureTools.cropImageByRegions` — Crop Image Regions
+
+`cropImageByRegions` cuts multiple regions from one image into independent images. The coordinate origin is the top-left corner of the source image. Each returned `imgData` contains WebP bytes.
+
+```ts
+import { pictureTools } from "breeze-plugin-kit";
+import type { ImageCropRegion } from "breeze-plugin-kit";
+
+async function cropImage(imageData: Uint8Array) {
+  const regions: ImageCropRegion[] = [
+    { number: 1, x: 0, y: 0, width: 200, height: 300 },
+    { number: 2, x: 200, y: 0, width: 200, height: 300 },
+  ];
+
+  const images = await pictureTools.cropImageByRegions(imageData, regions);
+  for (const image of images) {
+    console.log(image.number, image.imgData); // Uint8Array containing WebP bytes
+  }
+  return images;
+}
+```
+
+Inputs:
+
+- `imageData`: source image bytes as `Uint8Array`, `ArrayBuffer`, `ArrayBufferView`, or `number[]`.
+- `regions`: crop regions; each item contains an identifier `number`, top-left coordinates `x` / `y`, and dimensions `width` / `height`.
+
+The function returns a Promise whose items contain `number` and `imgData: Uint8Array`; each number corresponds to its input region.
 
 ### `crypto` — Encryption / Decryption
 

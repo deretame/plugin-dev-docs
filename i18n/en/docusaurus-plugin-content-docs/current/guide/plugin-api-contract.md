@@ -68,6 +68,7 @@ Host-invoked functions are triggered by scene; callbacks are invoked by the host
 | `getInfo` | Discover page loads plugin card |
 | `searchComic` | Search keyword / page / advanced search |
 | `getComicDetail` | Open comic detail |
+| `getPreview` | Load comic previews on the detail page |
 | `getReadSnapshot` | Reader init / chapter switch |
 | `getChapter` | Download chapter content |
 | `fetchImageBytes` | Read/download image binary |
@@ -246,6 +247,7 @@ type ComicDetailNormal = {
     metadata: MetadataListItem[];
     extern: Record<string, unknown>;
   };
+  preview?: PreviewCapability;
   eps: ChapterSummary[]; // chapter list
   recommend: RecommendItem[];
   totalViews: number;
@@ -258,6 +260,11 @@ type ComicDetailNormal = {
   allowCollected: boolean;
   allowDownload: boolean;
   extern: Record<string, unknown>;
+};
+
+type PreviewCapability = {
+  enabled: boolean;
+  extern?: Record<string, unknown>;
 };
 
 // Base types
@@ -420,7 +427,55 @@ type ChapterContentContract = {
 
 ---
 
-## 3. Social APIs
+## 3. Optional Capabilities
+
+### `getPreview(payload)`
+
+`preview` is an optional capability field. A source that supports previews
+returns `preview: { enabled: true }` in `data.normal`; unsupported sources omit
+the field.
+
+After `normal.preview.enabled` is confirmed, the host calls `getPreview` by
+page:
+
+```ts
+type PreviewPayload = {
+  comicId?: string;
+  page?: number;
+  extern?: Record<string, unknown>;
+};
+
+type PreviewItem = {
+  id: string;
+  name: string;
+  path: string;
+  url: string;
+  extern: Record<string, unknown>;
+};
+
+type PreviewContentContract = {
+  source: string;
+  comicId: string;
+  extern: Record<string, unknown> | null;
+  scheme: { version: "1.0.0"; type: "previewContent"; source: string };
+  data: {
+    preview: {
+      items: PreviewItem[];
+      paging: PagingInfo;
+    };
+  };
+};
+```
+
+The first request uses `normal.preview.extern`. The top-level `extern` returned
+by the plugin is passed through unchanged as the next request's `extern`, and
+may carry pagination cursors or session state.
+
+When `paging.hasReachedMax` is `true`, the host stops requesting more pages.
+
+---
+
+## 4. Social APIs
 
 ### `toggleLike(payload)`
 
@@ -570,7 +625,7 @@ type CommentMutationContract = {
 
 ---
 
-## 4. Discover & Lists
+## 5. Discover & Lists
 
 ### `getAdvancedSearchScheme()`
 
@@ -667,7 +722,7 @@ type FilterOption = {
 
 ---
 
-## 5. Settings
+## 6. Settings
 
 ### `getSettingsBundle()`
 
@@ -744,7 +799,7 @@ type UserInfoBundleContract = {
 
 ---
 
-## 6. Data Flow & Call Chains
+## 7. Data Flow & Call Chains
 
 ### 6.1 Search: Advanced Search → `searchComic`
 

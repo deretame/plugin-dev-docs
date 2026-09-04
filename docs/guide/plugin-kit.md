@@ -3,7 +3,7 @@
 `breeze-plugin-kit` 是 Breeze 官方维护的插件开发工具包，包含两类内容：
 
 1. **TypeScript 类型声明**：所有 `fnPath` 的契约类型、运行时全局 API 的类型定义。
-2. **常用工具函数**：对 `bridge` 路由的便捷封装，例如 `cache`、`pluginConfig`、`opencc`、`flutterTools`、`runtime`。
+2. **常用工具函数**：对 `bridge` 路由的便捷封装，例如 `cache`、`pluginConfig`、`opencc`、`flutterTools`、`runtime`、`pictureTools`。
 
 示例仓库已经把它拆成独立的 npm 包，新插件可以直接安装使用。
 
@@ -34,6 +34,8 @@ import type {
   SearchComicPayload,
   SearchResultContract,
   ComicDetailContract,
+  PreviewPayload,
+  PreviewContentContract,
   ChapterContentContract,
   ReadSnapshotContract,
   FetchImageBytesPayload,
@@ -281,6 +283,35 @@ await flutterTools.showToast({
 | `timezoneOffset`        | `string` | 时区偏移格式化字符串，如 `+08:00` / `-05:00`                 |
 | `timezoneOffsetMinutes` | `number` | 时区偏移分钟数，便于直接计算                                 |
 | `timezoneName`          | `string` | 系统时区缩写，如 `CST` / `EST`                               |
+
+### `pictureTools.cropImageByRegions` — 裁剪图片区域
+
+`cropImageByRegions` 用于把一张图片中的多个区域裁剪成独立图片。坐标原点位于原图左上角，返回结果中的 `imgData` 是 WebP 字节数据。
+
+```ts
+import { pictureTools } from "breeze-plugin-kit";
+import type { ImageCropRegion } from "breeze-plugin-kit";
+
+async function cropImage(imageData: Uint8Array) {
+  const regions: ImageCropRegion[] = [
+    { number: 1, x: 0, y: 0, width: 200, height: 300 },
+    { number: 2, x: 200, y: 0, width: 200, height: 300 },
+  ];
+
+  const images = await pictureTools.cropImageByRegions(imageData, regions);
+  for (const image of images) {
+    console.log(image.number, image.imgData); // Uint8Array，内容为 WebP
+  }
+  return images;
+}
+```
+
+输入参数：
+
+- `imageData`：原图二进制数据，支持 `Uint8Array`、`ArrayBuffer`、`ArrayBufferView` 或 `number[]`。
+- `regions`：裁剪区域数组；每项包含区域编号 `number`、左上角坐标 `x` / `y` 和区域尺寸 `width` / `height`。
+
+返回值是 Promise，结果数组中的每项包含 `number` 和 `imgData: Uint8Array`，编号与输入区域对应。
 
 ### `crypto` — 加密解密
 
