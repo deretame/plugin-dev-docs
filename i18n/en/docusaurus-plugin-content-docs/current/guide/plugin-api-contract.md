@@ -71,6 +71,7 @@ Host-invoked functions are triggered by scene; callbacks are invoked by the host
 | `getPreview` | Load comic previews on the detail page |
 | `getReadSnapshot` | Reader init / chapter switch |
 | `getChapter` | Download chapter content |
+| `getDownloadConcurrency` | Get image download concurrency before downloading a chapter |
 | `fetchImageBytes` | Read/download image binary |
 | `toggleLike` | Like on detail page |
 | `toggleFavorite` | Favorite on detail page |
@@ -259,8 +260,20 @@ type ComicDetailNormal = {
   allowLike: boolean;
   allowCollected: boolean;
   allowDownload: boolean;
+  // Reason shown to the user when the matching allow flag is false (optional).
+  // Falls back to "This plugin does not support this feature" when empty or missing.
+  allowCommentsReason?: string;
+  allowLikeReason?: string;
+  allowCollectedReason?: string;
+  allowDownloadReason?: string;
   extern: Record<string, unknown>;
 };
+
+> When an `allow*` flag is `false`, the host disables the entry but keeps a
+> tappable placeholder: tapping shows the matching `allow*Reason`, or the
+> default message when empty. For example, with `allowDownload: false` the
+> chapter row still shows a download button, and tapping it toasts the reason
+> instead of starting a download.
 
 type PreviewCapability = {
   enabled: boolean;
@@ -472,6 +485,26 @@ by the plugin is passed through unchanged as the next request's `extern`, and
 may carry pagination cursors or session state.
 
 When `paging.hasReachedMax` is `true`, the host stops requesting more pages.
+
+### `getDownloadConcurrency()`
+
+Before downloading a chapter, the host calls this function to get the image
+download concurrency. **Optional**: when unimplemented, invalid, or failed,
+the host falls back to `5`.
+
+```ts
+// Returns DownloadConcurrencyResult (top-level fields; a data wrapper is also accepted)
+type DownloadConcurrencyResult = {
+  concurrency: number;
+};
+
+async function getDownloadConcurrency() {
+  return { concurrency: 3 };
+}
+```
+
+> The host truncates the value to an integer and clamps it to `1-32`, calling
+> once per chapter download.
 
 ---
 

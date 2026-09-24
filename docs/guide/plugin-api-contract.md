@@ -76,6 +76,7 @@ type PluginEnvelope = {
 | `getPreview`              | 详情页加载漫画预览                 |
 | `getReadSnapshot`         | 阅读页初始化、切章                 |
 | `getChapter`              | 下载章节内容                       |
+| `getDownloadConcurrency`  | 下载章节前获取图片下载并发数       |
 | `fetchImageBytes`         | 阅读/下载时获取图片二进制          |
 | `toggleLike`              | 详情页点点赞                       |
 | `startFavoriteAction`     | 开始云端收藏工作流                 |
@@ -266,8 +267,19 @@ type ComicDetailNormal = {
   allowLike: boolean;
   allowCollected: boolean;
   allowDownload: boolean;
+  // 对应 allow 开关为 false 时展示给用户的原因，可选；
+  // 为空或缺省时宿主显示默认文案「该插件暂不支持此功能」。
+  allowCommentsReason?: string;
+  allowLikeReason?: string;
+  allowCollectedReason?: string;
+  allowDownloadReason?: string;
   extern: Record<string, unknown>;
 };
+
+> `allow*` 为 `false` 时宿主会禁用对应入口，但会保留可点击的提示位：
+> 点击后优先显示同名的 `allow*Reason`，为空则显示默认文案。
+> 例如 `allowDownload: false` 时章节右侧仍显示下载按钮，点击后 toast 提示原因，
+> 而不会直接发起下载。
 
 type PreviewCapability = {
   enabled: boolean;
@@ -475,6 +487,24 @@ type PreviewContentContract = {
 会作为下一次请求的 `extern` 原样传回，可用于保存分页游标或会话状态。
 
 当 `paging.hasReachedMax` 为 `true` 时，宿主停止继续请求。
+
+### `getDownloadConcurrency()`
+
+下载章节前，宿主调用该函数获取图片下载并发数。**可选实现**：
+未实现、返回非法或调用失败时，宿主回落为 `5`。
+
+```ts
+// 返回 DownloadConcurrencyResult（顶层字段即可，也兼容 data 包一层）
+type DownloadConcurrencyResult = {
+  concurrency: number;
+};
+
+async function getDownloadConcurrency() {
+  return { concurrency: 3 };
+}
+```
+
+> 约束：宿主会将返回值取整并钳制到 `1~32`，每下载一章调用一次。
 
 ---
 
