@@ -68,33 +68,31 @@ type PluginEnvelope = {
 
 下表中 Host 调用的函数是宿主按场景主动触发；回调函数是用户在 UI 上操作后宿主代调。
 
-| fnPath                    | 触发场景                           |
-| ------------------------- | ---------------------------------- |
-| `getInfo`                 | 发现页加载插件卡片                 |
-| `searchComic`             | 搜索页输入关键词 / 翻页 / 高级搜索 |
-| `getComicDetail`          | 打开漫画详情页                     |
-| `getPreview`              | 详情页加载漫画预览                 |
-| `getReadSnapshot`         | 阅读页初始化、切章                 |
-| `getChapter`              | 下载章节内容                       |
-| `getDownloadConcurrency`  | 下载章节前获取图片下载并发数       |
-| `fetchImageBytes`         | 阅读/下载时获取图片二进制          |
-| `toggleLike`              | 详情页点点赞                       |
-| `startFavoriteAction`     | 开始云端收藏工作流                 |
-| `continueFavoriteAction`  | 继续云端收藏工作流或处理用户输入   |
-| `toggleFavorite`          | 旧版详情页收藏兼容入口             |
-| `listFavoriteFolders`     | 旧版收藏后选择收藏夹               |
-| `moveFavoriteToFolder`    | 旧版用户确认收藏夹                 |
-| `getCommentFeed`          | 打开评论面板 / 翻页                |
-| `loadCommentReplies`      | 展开评论回复                       |
-| `postComment`             | 发送主评论                         |
-| `postCommentReply`        | 回复某条评论                       |
-| `getAdvancedSearchScheme` | 搜索页打开高级筛选                 |
-| `getComicListSceneBundle` | 发现页按 source 加载默认列表       |
-| `getRankingData`          | 列表页 body 请求                   |
-| `getRankingFilterBundle`  | 列表页点筛选按钮                   |
-| `getSettingsBundle`       | 打开插件设置页                     |
-| `getCapabilitiesBundle`   | 打开设置页（操作区段）             |
-| `getUserInfoBundle`       | 设置页显示用户卡片                 |
+| fnPath                                             | 触发场景                                              |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| `getInfo`                                          | 发现页加载插件卡片                                    |
+| `searchComic`                                      | 搜索页输入关键词 / 翻页 / 高级搜索                    |
+| `getComicDetail`                                   | 打开漫画详情页                                        |
+| `getPreview`                                       | 详情页加载漫画预览                                    |
+| `getReadSnapshot`                                  | 阅读页初始化、切章                                    |
+| `getChapter`                                       | 下载章节内容                                          |
+| `getDownloadConcurrency`                           | 下载章节前获取图片下载并发数                          |
+| `fetchImageBytes`                                  | 阅读/下载时获取图片二进制                             |
+| `toggleLike`                                       | 详情页点点赞                                          |
+| `startFavoriteAction`                              | 开始云端收藏工作流                                    |
+| `continueFavoriteAction`                           | 继续云端收藏工作流或处理用户输入                      |
+| `toggleFavorite`                                   | 旧版详情页收藏兼容入口                                |
+| `listFavoriteFolders`                              | 旧版收藏后选择收藏夹                                  |
+| `moveFavoriteToFolder`                             | 旧版用户确认收藏夹                                    |
+| `getCommentFeed`                                   | 打开评论面板 / 翻页                                   |
+| `loadCommentReplies`                               | 展开评论回复                                          |
+| `postComment`                                      | 发送主评论                                            |
+| `postCommentReply`                                 | 回复某条评论                                          |
+| `getAdvancedSearchScheme`                          | 搜索页打开高级筛选                                    |
+| `getComicListSceneBundle`                          | 发现页按 source 加载默认列表                          |
+| `getFunctionPage`                                  | 功能页入口点进后加载自定义页面                        |
+| `getRankingData`（示例名）                         | 列表页 body 请求（实际以 `scene.body.request.fnPath` 为准） |
+| `getRankingFilterBundle`（示例名，按需配置）       | 列表页点筛选按钮（仅当 `scene` 配置了 `filter.fnPath` 时） |
 
 以下为回调函数，由插件在 setting / capability 中指定 `fnPath`，用户操作时宿主代调：
 
@@ -133,29 +131,68 @@ type InfoContract = {
 // - 不在列表中的插件：静默更新 /「同步」读 getInfo 的 npmName / updateUrl
 
 type PluginFunctionItem = {
+  /** 入口标识：发现页按钮的 key。`openPluginFunction` 的外层 `id` 与其 `payload.id` 保持一致。 */
   id: string;
+  /** 发现页按钮文案。 */
   title: string;
-  action:
-    | { type: "openSearch"; payload: { source: string; keyword?: string } }
-    | { type: "openComicDetail"; payload: { comicId: string } }
-    | { type: "openWeb"; payload: { title?: string; url: string } }
-    | { type: "openComicList"; payload: { scene: ComicListScene } }
-    | {
-        type: "openPluginFunction";
-        payload: {
-          id: string;
-          title?: string;
-          presentation?: "page" | "dialog";
-        };
-      }
-    | { type: "openCloudFavorite"; payload: { title: string } };
+  /** 点击后宿主执行的操作。权威定义见 breeze-plugin-kit 的 `PluginAction` / `Open*Action`。 */
+  action: PluginAction;
 };
+```
+
+目前推荐使用 `openComicList` 作为功能入口。示例见 [快速开始](/guide/quick-start)。
+
+入口定义见本节；点进后列表页样式见 `getRankingData(payload)`，
+列表筛选见 `getRankingFilterBundle()`（示例名，按需配置），
+功能页样式见 `getFunctionPage(payload)`，调用链见 6.5。
+
+```ts
+type PluginAction =
+  // 打开分页漫画列表页。`scene.body.request.fnPath` 为插件导出的列表数据函数
+  //（如 `getRankingData`），宿主分页调用，函数名可自定。`scene.filter` 为可选的筛选配置，
+  // 仅当需要列表筛选时才配置：配置后必须提供真实可调用的筛选函数（如 `getRankingFilterBundle`），
+  // 用户点击筛选时调用。`core` 放固定参数，`extern` 放透传上下文，合并规则见 6.2 / 6.5。
+  | { type: "openComicList"; payload: { scene: ComicListScene } }
+  // 打开插件自定义功能页。需同时实现 `getFunctionPage`，且 `payload.id` 须与其
+  // 可处理的 `id` 对应，否则宿主报"未知功能"。`presentation` 为 `"page"` 整页
+  // 或 `"dialog"` 弹窗。功能页布局节点见 `FunctionPageBodyNode`
+  //（`chip-list` / `action-grid` / `comic-section-list` / `comic-grid`），
+  // 格子点击一般再跳 `openSearch` / `openComicList`。
+  | {
+      type: "openPluginFunction";
+      payload: {
+        id: string;
+        title?: string;
+        presentation?: "page" | "dialog";
+        source?: string;
+      };
+    }
+  // `openCloudFavorite` 不再维护，仅为兼容保留；新插件如需收藏入口，请使用 `openComicList` 自建列表。
+  | { type: "openCloudFavorite"; payload: { title: string; source?: string } }
+  // `openSearch` 作为 function 入口不再维护，仅为兼容保留；新插件无需配置搜索入口，搜索由 `searchComic` 提供。
+  // 该动作在详情页 metadata / titleMeta chip 的 `onTap` 中仍可使用。
+  | {
+      type: "openSearch";
+      payload: { source?: string; keyword?: string; extern?: Record<string, unknown> };
+    }
+  // 直达漫画详情页。`comicId` 为目标漫画标识，`source` 缺省为当前插件，`extern` 为透传上下文。
+  | {
+      type: "openComicInfo";
+      payload: {
+        comicId: string;
+        source?: string;
+        extern: Record<string, unknown>;
+      };
+    }
+  // 打开内置 WebView。`url` 为目标地址，`title` 为标题。
+  // 一般不作为发现页入口，多用于设置 / 能力回调中打开外部页面。
+  | { type: "openWeb"; payload: { title?: string; url: string } };
 
 type ComicListScene = {
   title: string;
-  source: string;
+  source?: string; // 习惯上填当前插件 ID
   body: {
-    type: "pluginPagedComicList" | "pluginPagedCreatorList";
+    type: "pluginPagedComicList";
     request: ComicListRequest;
   };
   filter?: ComicListRequest;
@@ -168,7 +205,15 @@ type ComicListRequest = {
 };
 ```
 
-目前推荐使用 `openComicList` 作为功能入口。示例见 [快速开始](/guide/quick-start)。
+`function` 字段行为说明：
+
+- 允许空数组：发现页不展示该插件的功能按钮，搜索 / 详情链路不受影响。
+- 与 `getComicListSceneBundle` 独立：前者是"入口按钮组"，后者是"发现页默认场景"，可只实现其一。
+- 修改 `function` 入口需重装插件才能刷新，热更新不生效（见「快速开始 → 注意事项」）。
+- `openSearch` 作为 function 入口不再维护，仅为兼容保留；新插件无需配置搜索入口，搜索由 `searchComic` 提供。
+- `openCloudFavorite` 不再维护，仅为兼容保留；新插件如需收藏入口，请使用 `openComicList` 自建列表。
+- `openComicDetail` 不再维护，请使用 `openComicInfo`。
+- `scene.list` 写法不再维护，请使用 `scene.body.request`。
 
 ### `searchComic(payload)`
 
@@ -663,6 +708,13 @@ type CommentMutationContract = {
 
 ## 5. 发现与列表
 
+点进功能入口后看什么，按需直达：
+
+- 列表页长什么样、卡片字段怎么填 → `getRankingData(payload)`
+- 列表筛选怎么做（含二级联动示例） → `getRankingFilterBundle()`（示例名，按需配置）
+- 功能页四种区块怎么做 → `getFunctionPage(payload)`
+- 筛选参数如何合并进列表请求 → 6.2；完整调用链 → 6.5
+
 ### `getAdvancedSearchScheme()`
 
 定义搜索页的高级搜索筛选项。用户选中后，筛选值会通过 `extern` 传入 `searchComic`。
@@ -707,6 +759,14 @@ type ComicListSceneBundleContract = {
 
 列表数据函数，由 `ComicListScene.body.request.fnPath` 指定。宿主分页请求列表数据时调用。
 
+点进 `openComicList` 入口后，宿主渲染"漫画卡片网格"列表页：`data.items[]` 的每项按
+"封面 + 标题 + 副标题 + 元信息"展示为一张卡片，点击卡片打开 `getComicDetail`。
+`data.hasReachedMax` 为 `true` 时宿主停止分页请求。
+
+卡片字段中 `id` / `title` / `cover` 必填（`cover.url` 为占位字符串，真实图片走
+`fetchImageBytes`）；建议同时填充 `subtitle` / `metadata` / `likesCount` /
+`viewsCount` / `updatedAt` / `finished`，否则对应位置留空。
+
 ```ts
 // 入参同 SearchComicPayload（含 paging + extern）
 
@@ -719,9 +779,20 @@ type ComicPagedListContract = {
 };
 ```
 
-### `getRankingFilterBundle()`
+### `getRankingFilterBundle()`（示例名，按需配置）
 
-列表筛选函数，由 `ComicListScene.filter.fnPath` 指定。用户点击列表页筛选按钮时调用。
+列表筛选函数，由 `ComicListScene.filter.fnPath` 指定。`filter` 本身可选：
+不需要列表筛选时直接省略 `scene.filter`，此时列表页不展示筛选按钮；
+需要筛选时才配置 `filter: { fnPath, core?, extern? }`，且 `fnPath` 必须指向插件
+实际导出的可调用函数，否则用户点击筛选按钮会失败。
+
+配置后，用户点击列表页筛选按钮时宿主调用该函数。
+
+筛选面板按 `scheme.fields[]` 渲染为分组单选：每个 `field` 一组，`label` 为组标题，
+`options[].label` 为选项文案。`data.values` 以 `field.key` 为键给出每组的默认选中
+（`value` 语义由插件自定，宿主只做透传比对），为空时该组无默认选中。
+`option.children` 用于二级联动选项（如选中某分类后展开子分类）。
+`option.result.core` / `result.extern` 在用户确认后合并进下一次列表请求，合并规则见 6.2。
 
 ```ts
 // 返回 FilterBundleContract
@@ -753,6 +824,108 @@ type FilterOption = {
     [key: string]: unknown;
   };
   children?: FilterOption[];
+};
+```
+
+示例（含二级联动：部分父选项有子选项，部分没有；选中带 `children` 的父选项后才展开子选项）：
+
+```ts
+async function getRankingFilterBundle() {
+  return {
+    source: PLUGIN_ID,
+    scheme: {
+      version: "1.0.0",
+      type: "rankingFilter",
+      title: "筛选漫画",
+      fields: [
+        {
+          key: "category",
+          kind: "choice",
+          label: "分类",
+          options: [
+            // 无子选项：选中即生效
+            { label: "最新", value: "latest", result: { extern: { type: "0" } } },
+            // 有子选项：选中父选项后展开 children 再选一项
+            {
+              label: "同人",
+              value: "doujin",
+              result: { extern: { type: "doujin" } },
+              children: [
+                { label: "汉化", value: "doujin_chinese", result: { extern: { type: "doujin_chinese" } } },
+                { label: "日语", value: "doujin_japanese", result: { extern: { type: "doujin_japanese" } } },
+              ],
+            },
+            {
+              label: "单本",
+              value: "single",
+              result: { extern: { type: "single" } },
+              children: [
+                { label: "汉化", value: "single_chinese", result: { extern: { type: "single_chinese" } } },
+                { label: "日语", value: "single_japanese", result: { extern: { type: "single_japanese" } } },
+              ],
+            },
+          ],
+        },
+        {
+          key: "order",
+          kind: "choice",
+          label: "排序",
+          options: [
+            { label: "最新", value: "new", result: { extern: { order: "new" } } },
+            { label: "最热", value: "hot", result: { extern: { order: "hot" } } },
+          ],
+        },
+      ],
+    },
+    data: { values: { category: "latest", order: "new" } },
+  };
+}
+
+// 用户选中「同人 → 汉化」后，下一次列表请求的 extern 合并为 { ..., type: "doujin_chinese" }；
+// 选中「最新」则直接合并 { ..., type: "0" }，无二级面板。合并规则见 6.2。
+```
+
+### `getFunctionPage(payload)`
+
+功能页数据函数，由 `openPluginFunction` 的 `payload.id` 指定。点进功能页入口后宿主调用，
+入参 `{ id, page, core, extern }`（`id` 即入口配置的 `payload.id`），未知 `id` 应抛错。
+
+页面样式由 `scheme.body` 决定，`data` 按 `body` 引用的 `key` 提供内容。`scheme.body` 固定为
+`{ type: "list", children: [...] }` 容器，`children` 每项声明一种区块及其数据来源：
+
+- `{ type: "chip-list", key }`：标签条。`data[key]` 为 `{ items: [{ label, action }] }`，
+  横向排列可点击标签，点击执行 `action`（一般为 `openSearch`）。
+- `{ type: "action-grid", key }`：图标宫格。`data[key]` 为
+  `{ items: [{ title, cover, action }] }`，`cover` 含 `url` / `path` / `extern`，
+  点击格子执行 `action`（一般为 `openSearch` / `openComicList`）。
+- `{ type: "comic-section-list", key }`：漫画分区列表。`data[key]` 为
+  `{ sections: [{ title, subtitle, action, items: ComicListItem[] }] }`，
+  每区渲染"标题 + 横滑漫画卡片"，卡片字段与列表页一致。
+- `{ type: "comic-grid", key }`：漫画网格。`data[key]` 为 `{ items: ComicListItem[] }`，
+  与列表页同样式，可带 `title` / `action` 作为区头。
+
+`hasReachedMax` 为 `true` 时宿主停止对该 `key` 的分页请求。`presentation: "dialog"` 的
+功能页适合放 `chip-list` 这类轻量区块，`"page"` 整页适合放宫格 / 分区 / 网格。
+
+```ts
+// 入参 GetFunctionPagePayload
+type GetFunctionPagePayload = {
+  id?: string;
+  page?: number;
+  core?: Record<string, unknown>;
+  extern?: Record<string, unknown>;
+};
+
+// 返回 FunctionPageContract
+type FunctionPageContract = {
+  source: string;
+  scheme: {
+    version: "1.0.0";
+    type: "page";
+    title: string;
+    body: FunctionPageBodyNode;
+  };
+  data: FunctionPageData; // 按 body 引用 key 提供 items / sections，见上
 };
 ```
 
@@ -919,12 +1092,22 @@ type SettingsFieldCallbackPayload = {
 ```
 用户点"排行榜"按钮
   → 宿主读取对应 action.payload.scene
-  → 渲染列表页（标题、筛选按钮等）
+  → 渲染列表页（标题等；仅当 scene 配置了 filter 时才展示筛选按钮）
   → 调用 scene.body.request.fnPath（如 getRankingData）获取列表数据
   → 用户点筛选 → 调用 scene.filter.fnPath（如 getRankingFilterBundle）
 ```
 
 `scene.body.request.core` 和 `scene.body.request.extern` 作为固定参数传入每次列表请求，与筛选器动态参数合并。
+
+以 `openPluginFunction` 为例：
+
+```
+用户点功能按钮
+  → 宿主读取 action.payload.id / presentation，打开整页或弹窗
+  → 调用 getFunctionPage({ id }) 获取 scheme.body + data
+  → 按 body.children 渲染 chip-list / action-grid / comic-section-list / comic-grid
+  → 用户点格子 → 执行该项 action（如 openSearch / openComicList），进入对应列表或搜索页
+```
 
 ### 6.6 实践建议
 

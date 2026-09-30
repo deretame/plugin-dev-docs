@@ -83,11 +83,9 @@ Host-invoked functions are triggered by scene; callbacks are invoked by the host
 | `postCommentReply` | Reply to a comment |
 | `getAdvancedSearchScheme` | Open advanced search filters |
 | `getComicListSceneBundle` | Discover default list by source |
-| `getRankingData` | List page body request |
-| `getRankingFilterBundle` | List page filter button |
-| `getSettingsBundle` | Open plugin settings |
-| `getCapabilitiesBundle` | Open settings (actions section) |
-| `getUserInfoBundle` | User card on settings |
+| `getFunctionPage` | Custom page after tapping a function entry |
+| `getRankingData` (example name) | List page body request (actual name from `scene.body.request.fnPath`) |
+| `getRankingFilterBundle` (example name, optional) | List page filter button (only when `scene` sets `filter.fnPath`) |
 
 Callbacks: plugins set `fnPath` on settings / capabilities; the host calls them on user action:
 
@@ -126,29 +124,70 @@ type InfoContract = {
 // - Unlisted plugins: silent update / Sync use getInfo npmName / updateUrl
 
 type PluginFunctionItem = {
+  /** Entry key shown as a Discover button. The outer `id` of `openPluginFunction` matches its `payload.id`. */
   id: string;
+  /** Button label on the Discover page. */
   title: string;
-  action:
-    | { type: "openSearch"; payload: { source: string; keyword?: string } }
-    | { type: "openComicDetail"; payload: { comicId: string } }
-    | { type: "openWeb"; payload: { title?: string; url: string } }
-    | { type: "openComicList"; payload: { scene: ComicListScene } }
-    | {
-        type: "openPluginFunction";
-        payload: {
-          id: string;
-          title?: string;
-          presentation?: "page" | "dialog";
-        };
-      }
-    | { type: "openCloudFavorite"; payload: { title: string } };
+  /** Action the host runs on tap. Authoritative shapes: `PluginAction` / `Open*Action` in breeze-plugin-kit. */
+  action: PluginAction;
 };
+```
+
+Prefer `openComicList` as feature entries. Examples: [Quick Start](/guide/quick-start).
+
+Entry shapes are defined in this section; after tapping: list page style → `getRankingData(payload)`,
+list filtering → `getRankingFilterBundle()` (example name, optional),
+function page style → `getFunctionPage(payload)`, call chain → 6.5.
+```ts
+type PluginAction =
+  // Open a paged comic list. `scene.body.request.fnPath` is the exported list data fn
+  // (e.g. `getRankingData`), called per page by the host; the name is free to choose.
+  // `scene.filter` is an optional filter config, only set when the list needs filtering:
+  // once set, it must name a real callable filter fn (e.g. `getRankingFilterBundle`),
+  // called when the user opens filtering. `core` holds fixed params,
+  // `extern` holds passthrough context; merge rules: 6.2 / 6.5.
+  | { type: "openComicList"; payload: { scene: ComicListScene } }
+  // Open a custom plugin page. Also implement `getFunctionPage`, and `payload.id` must
+  // match an `id` it handles, otherwise the host reports "unknown function".
+  // `presentation` is `"page"` fullscreen or `"dialog"` popup. Layout nodes: see
+  // `FunctionPageBodyNode` (`chip-list` / `action-grid` / `comic-section-list` / `comic-grid`);
+  // grid taps usually route on to `openSearch` / `openComicList`.
+  | {
+      type: "openPluginFunction";
+      payload: {
+        id: string;
+        title?: string;
+        presentation?: "page" | "dialog";
+        source?: string;
+      };
+    }
+  // `openCloudFavorite` is deprecated, kept for compatibility only; new plugins needing a favorites entry use `openComicList` with their own list.
+  | { type: "openCloudFavorite"; payload: { title: string; source?: string } }
+  // `openSearch` as a function entry is deprecated, kept for compatibility only; new plugins need no search entry, search is provided by `searchComic`.
+  // The same action remains usable as a detail-page metadata / titleMeta chip `onTap`.
+  | {
+      type: "openSearch";
+      payload: { source?: string; keyword?: string; extern?: Record<string, unknown> };
+    }
+  // Jump straight to a comic. `comicId` is the target comic, `source` defaults to the
+  // current plugin, `extern` is passthrough context.
+  | {
+      type: "openComicInfo";
+      payload: {
+        comicId: string;
+        source?: string;
+        extern: Record<string, unknown>;
+      };
+    }
+  // Open the built-in WebView. `url` is the target, `title` the title.
+  // Usually not a Discover entry; used in settings / capability callbacks for external pages.
+  | { type: "openWeb"; payload: { title?: string; url: string } };
 
 type ComicListScene = {
   title: string;
-  source: string;
+  source?: string; // conventionally the current plugin ID
   body: {
-    type: "pluginPagedComicList" | "pluginPagedCreatorList";
+    type: "pluginPagedComicList";
     request: ComicListRequest;
   };
   filter?: ComicListRequest;
@@ -161,7 +200,15 @@ type ComicListRequest = {
 };
 ```
 
-Prefer `openComicList` as feature entries. Examples: [Quick Start](/guide/quick-start).
+`function` field behavior:
+
+- Empty array allowed: no Discover buttons for the plugin; search / detail still work.
+- Independent of `getComicListSceneBundle`: the former is the "entry button group", the latter the "default Discover scene"; either one alone works.
+- Editing `function` entries needs a reinstall to refresh; hot-reload does not pick it up (see Quick Start notes).
+- `openSearch` as a function entry is deprecated, kept for compatibility only; new plugins need no search entry, search is provided by `searchComic`.
+- `openCloudFavorite` is deprecated, kept for compatibility only; new plugins needing a favorites entry use `openComicList` with their own list.
+- `openComicDetail` is deprecated, use `openComicInfo`.
+- The `scene.list` shape is deprecated, use `scene.body.request`.
 
 ### `searchComic(payload)`
 
@@ -660,6 +707,13 @@ type CommentMutationContract = {
 
 ## 5. Discover & Lists
 
+What you see after tapping an entry, jump as needed:
+
+- List page look and card fields → `getRankingData(payload)`
+- List filtering (with cascading example) → `getRankingFilterBundle()` (example name, optional)
+- Function page block styles → `getFunctionPage(payload)`
+- How filter params merge into list requests → 6.2; full call chain → 6.5
+
 ### `getAdvancedSearchScheme()`
 
 Defines advanced search fields. Selected values are passed to `searchComic` via `extern`.
@@ -704,6 +758,14 @@ type ComicListSceneBundleContract = {
 
 List data function named by `ComicListScene.body.request.fnPath`. Called when the host pages list data.
 
+Tapping an `openComicList` entry renders a "comic card grid" list page: each `data.items[]`
+entry shows as one card ("cover + title + subtitle + metadata"); tapping a card opens
+`getComicDetail`. The host stops paging when `data.hasReachedMax` is `true`.
+
+`id` / `title` / `cover` are required per card (`cover.url` is a placeholder string; real
+bytes come from `fetchImageBytes`); `subtitle` / `metadata` / `likesCount` / `viewsCount` /
+`updatedAt` / `finished` are recommended, otherwise left blank.
+
 ```ts
 // Input same shape as SearchComicPayload (paging + extern)
 
@@ -716,9 +778,21 @@ type ComicPagedListContract = {
 };
 ```
 
-### `getRankingFilterBundle()`
+### `getRankingFilterBundle()` (example name, optional)
 
-List filter function named by `ComicListScene.filter.fnPath`. Called when the user opens list filters.
+List filter function named by `ComicListScene.filter.fnPath`. `filter` itself is optional:
+omit `scene.filter` when the list needs no filtering and the list page shows no filter button;
+only set `filter: { fnPath, core?, extern? }` when filtering is needed, and `fnPath` must name
+a real exported callable, otherwise tapping the filter button fails.
+
+Once set, the host calls it when the user opens list filters.
+
+The filter panel renders `scheme.fields[]` as grouped single-selects: one group per `field`,
+`label` as the group title, `options[].label` as option text. `data.values` keyed by
+`field.key` gives each group's default selection (`value` semantics are plugin-defined;
+the host only compares opaquely); empty means no default. `option.children` holds
+second-level linked options. `option.result.core` / `result.extern` merge into the next
+list request on confirm; merge rules: 6.2.
 
 ```ts
 // Return FilterBundleContract
@@ -750,6 +824,110 @@ type FilterOption = {
     [key: string]: unknown;
   };
   children?: FilterOption[];
+};
+```
+
+Example (cascading: some parents carry `children`, some don't; children open only after tapping a parent that has them):
+
+```ts
+async function getRankingFilterBundle() {
+  return {
+    source: PLUGIN_ID,
+    scheme: {
+      version: "1.0.0",
+      type: "rankingFilter",
+      title: "Filter comics",
+      fields: [
+        {
+          key: "category",
+          kind: "choice",
+          label: "Category",
+          options: [
+            // No children: selecting applies immediately
+            { label: "Latest", value: "latest", result: { extern: { type: "0" } } },
+            // With children: tapping the parent opens children for a second pick
+            {
+              label: "Doujin",
+              value: "doujin",
+              result: { extern: { type: "doujin" } },
+              children: [
+                { label: "Chinese", value: "doujin_chinese", result: { extern: { type: "doujin_chinese" } } },
+                { label: "Japanese", value: "doujin_japanese", result: { extern: { type: "doujin_japanese" } } },
+              ],
+            },
+            {
+              label: "Oneshot",
+              value: "single",
+              result: { extern: { type: "single" } },
+              children: [
+                { label: "Chinese", value: "single_chinese", result: { extern: { type: "single_chinese" } } },
+                { label: "Japanese", value: "single_japanese", result: { extern: { type: "single_japanese" } } },
+              ],
+            },
+          ],
+        },
+        {
+          key: "order",
+          kind: "choice",
+          label: "Sort",
+          options: [
+            { label: "Newest", value: "new", result: { extern: { order: "new" } } },
+            { label: "Hottest", value: "hot", result: { extern: { order: "hot" } } },
+          ],
+        },
+      ],
+    },
+    data: { values: { category: "latest", order: "new" } },
+  };
+}
+
+// Picking "Doujin → Chinese" merges extern { ..., type: "doujin_chinese" } into the next list request;
+// picking "Latest" merges { ..., type: "0" } with no second panel. Merge rules: 6.2.
+```
+
+### `getFunctionPage(payload)`
+
+Function-page data function named by `openPluginFunction`'s `payload.id`. Called after the
+entry is tapped, with `{ id, page, core, extern }` (`id` is the entry's `payload.id`); throw
+for unknown `id`.
+
+Page style comes from `scheme.body`; `data` fills the `key`s referenced by `body`.
+`scheme.body` is always a `{ type: "list", children: [...] }` container; each child
+declares one block and its data source:
+
+- `{ type: "chip-list", key }`: tag strip. `data[key]` is `{ items: [{ label, action }] }`,
+  horizontally laid out tappable tags; tap runs `action` (usually `openSearch`).
+- `{ type: "action-grid", key }`: icon grid. `data[key]` is
+  `{ items: [{ title, cover, action }] }`, `cover` with `url` / `path` / `extern`;
+  tap runs `action` (usually `openSearch` / `openComicList`).
+- `{ type: "comic-section-list", key }`: comic sections. `data[key]` is
+  `{ sections: [{ title, subtitle, action, items: ComicListItem[] }] }`,
+  each section renders "title + horizontal comic cards" with the same card fields as list pages.
+- `{ type: "comic-grid", key }`: comic grid. `data[key]` is `{ items: ComicListItem[] }`,
+  same style as list pages, optionally with `title` / `action` as the section header.
+
+`hasReachedMax: true` stops the host paging that `key`. `presentation: "dialog"` suits
+light blocks like `chip-list`; `"page"` suits grids / sections / grids.
+
+```ts
+// Input GetFunctionPagePayload
+type GetFunctionPagePayload = {
+  id?: string;
+  page?: number;
+  core?: Record<string, unknown>;
+  extern?: Record<string, unknown>;
+};
+
+// Return FunctionPageContract
+type FunctionPageContract = {
+  source: string;
+  scheme: {
+    version: "1.0.0";
+    type: "page";
+    title: string;
+    body: FunctionPageBodyNode;
+  };
+  data: FunctionPageData; // items / sections per body key, see above
 };
 ```
 
@@ -916,12 +1094,22 @@ Each `fnPath` in `getCapabilitiesBundle().scheme.actions[]` is called by the hos
 ```
 User taps "Ranking"
   → host reads action.payload.scene
-  → renders list page (title, filter button, etc.)
+  → renders list page (title, etc.; filter button only when scene sets filter)
   → calls scene.body.request.fnPath (e.g. getRankingData) for list data
   → user opens filter → calls scene.filter.fnPath (e.g. getRankingFilterBundle)
 ```
 
 `scene.body.request.core` and `scene.body.request.extern` are fixed params on every list request, merged with dynamic filter params.
+
+For `openPluginFunction`:
+
+```
+User taps a function button
+  → host reads action.payload.id / presentation, opens a page or dialog
+  → calls getFunctionPage({ id }) for scheme.body + data
+  → renders chip-list / action-grid / comic-section-list / comic-grid per body.children
+  → user taps a cell → runs that cell's action (e.g. openSearch / openComicList) into the matching list or search page
+```
 
 ### 6.6 Practical Tips
 
