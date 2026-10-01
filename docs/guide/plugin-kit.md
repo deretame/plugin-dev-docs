@@ -59,6 +59,10 @@ import type {
   CapabilitiesBundleContract,
   UserInfoBundleContract,
   FunctionPageContract,
+  LoginBundleContract,
+  LoginBundleInit,
+  LoginField,
+  LoginSubmitPayload,
 } from "breeze-plugin-kit";
 ```
 
@@ -212,6 +216,62 @@ const { value } = JSON.parse(raw);
 
 > 注意：`save` 的 `value` 是字符串。Dart 端会尝试 `jsonDecode`：成功则存解码后的值，失败则存原字符串。
 
+### `authConfig` / 登录 helper — 登录表单与 need-login 错误
+
+`authConfig` 是 `pluginConfig` 的字符串便捷封装，自动处理 ok 信封的编解码，
+存取账号密码无需手写 `JSON.parse` / `JSON.stringify`：
+
+```ts
+import { authConfig } from "breeze-plugin-kit";
+
+await authConfig.save("auth.account", account);
+const account = await authConfig.load("auth.account", "");
+```
+
+登录表单与 need-login 错误的完整 helper（详见接口协议 §6.5 登录）：
+
+```ts
+import {
+  authConfig,
+  buildLoginBundle,
+  buildUnauthorizedError,
+  readLoginValues,
+} from "breeze-plugin-kit";
+import type {
+  LoginBundleContract,
+  LoginBundleInit,
+  LoginSubmitPayload,
+} from "breeze-plugin-kit";
+
+async function getLoginBundle(): Promise<LoginBundleContract> {
+  return buildLoginBundle(PLUGIN_ID, {
+    title: "示例登录",
+    fields: [
+      { key: "account", kind: "text", label: "用户名", required: true },
+      { key: "password", kind: "password", label: "密码", required: true },
+    ],
+    submitFnPath: "loginWithPassword",
+    values: { account: await authConfig.load("auth.account") },
+  } satisfies LoginBundleInit);
+}
+
+async function loginWithPassword(payload: LoginSubmitPayload = {}) {
+  const { account, password } = readLoginValues(payload);
+  // ... 请求登录接口，成功后持久化
+  await authConfig.save("auth.account", account);
+  await authConfig.save("auth.password", password);
+}
+
+// 鉴权失败处：
+throw buildUnauthorizedError(PLUGIN_ID, "登录过期，请重新登录");
+```
+
+| 导出 | 说明 |
+| ---- | ---- |
+| `readLoginValues(payload)` | 提取 `core.values` 中的表单值 |
+| `buildLoginBundle(source, init)` | 构造 `getLoginBundle` 返回值 |
+| `buildUnauthorizedError(source, message?)` | 构造宿主可识别的 need-login 错误 |
+| `authConfig.load/save` | 带编解码的持久化配置读写 |
 ### `runtime` — 运行时工具
 
 ```ts

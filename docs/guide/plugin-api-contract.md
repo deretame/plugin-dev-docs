@@ -105,12 +105,17 @@ type PluginEnvelope = {
 
 ## 2. 核心 API
 
-### `getInfo()`
+### `getInfo()`（类型见 kit：`InfoContract`）
 
 返回插件基本信息与功能入口。
 
 ```ts
-// 返回类型 InfoContract
+import type { InfoContract } from "breeze-plugin-kit";
+
+async function getInfo(): Promise<InfoContract> {}
+```
+
+```ts
 type InfoContract = {
   name: string;
   uuid: string;
@@ -215,17 +220,26 @@ type ComicListRequest = {
 - `openComicDetail` 不再维护，请使用 `openComicInfo`。
 - `scene.list` 写法不再维护，请使用 `scene.body.request`。
 
-### `searchComic(payload)`
+### `searchComic(payload)`（类型见 kit：`SearchComicPayload` / `SearchResultContract`）
 
 ```ts
-// 入参 SearchComicPayload
+import type {
+  SearchComicPayload,
+  SearchResultContract,
+} from "breeze-plugin-kit";
+
+async function searchComic(
+  payload: SearchComicPayload,
+): Promise<SearchResultContract> {}
+```
+
+```ts
 type SearchComicPayload = {
   keyword?: string;
   page?: number;
   extern?: Record<string, unknown>;
 };
 
-// 返回 SearchResultContract
 type SearchResultContract = {
   source: string;
   extern: Record<string, unknown> | null;
@@ -265,16 +279,25 @@ type ComicListItem = {
 
 `extern` 中会包含高级搜索选中的筛选项。
 
-### `getComicDetail(payload)`
+### `getComicDetail(payload)`（类型见 kit：`ComicDetailPayload` / `ComicDetailContract`）
 
 ```ts
-// 入参 ComicDetailPayload
+import type {
+  ComicDetailContract,
+  ComicDetailPayload,
+} from "breeze-plugin-kit";
+
+async function getComicDetail(
+  payload: ComicDetailPayload,
+): Promise<ComicDetailContract> {}
+```
+
+```ts
 type ComicDetailPayload = {
   comicId?: string;
   extern?: Record<string, unknown>;
 };
 
-// 返回 ComicDetailContract
 type ComicDetailContract = {
   source: string;
   comicId: string;
@@ -376,17 +399,26 @@ type ChapterPage = {
 };
 ```
 
-### `getReadSnapshot(payload)`
+### `getReadSnapshot(payload)`（类型见 kit：`ReadSnapshotPayload` / `ReadSnapshotContract`）
 
 ```ts
-// 入参 ReadSnapshotPayload
+import type {
+  ReadSnapshotContract,
+  ReadSnapshotPayload,
+} from "breeze-plugin-kit";
+
+async function getReadSnapshot(
+  payload: ReadSnapshotPayload,
+): Promise<ReadSnapshotContract> {}
+```
+
+```ts
 type ReadSnapshotPayload = {
   comicId?: string;
   chapterId?: string | number; // 即 requestId
   extern?: Record<string, unknown>;
 };
 
-// 返回 ReadSnapshotContract
 type ReadSnapshotContract = {
   source: string;
   extern: Record<string, unknown> | null;
@@ -412,10 +444,20 @@ type ChapterWithPages = ChapterSummary & { pages: ChapterPage[] };
 
 `chapters` 是章节导航列表（精简版），`chapter` 是当前选中章节（含 `pages`）。
 
-### `fetchImageBytes(payload)`
+### `fetchImageBytes(payload)`（类型见 kit：`FetchImageBytesPayload` / `FetchImageBytesResult`）
 
 ```ts
-// 入参 FetchImageBytesPayload
+import type {
+  FetchImageBytesPayload,
+  FetchImageBytesResult,
+} from "breeze-plugin-kit";
+
+async function fetchImageBytes(
+  payload: FetchImageBytesPayload,
+): Promise<FetchImageBytesResult> {}
+```
+
+```ts
 type FetchImageBytesPayload = {
   url?: string;
   timeoutMs?: number;
@@ -423,7 +465,6 @@ type FetchImageBytesPayload = {
   extern?: Record<string, unknown>;
 };
 
-// 返回类型（直接返回 Uint8Array，不再返回 { nativeBufferId }）
 type FetchImageBytesResult = Uint8Array<ArrayBufferLike>;
 ```
 
@@ -450,12 +491,22 @@ async function fetchImageBytes({
 }
 ```
 
-### `getChapter(payload)`
+### `getChapter(payload)`（类型见 kit：`ChapterPayload` / `ChapterContentContract`）
 
 下载场景使用，结构与 `getReadSnapshot` 类似但携带完整的 `scheme + data + comicId/chapterId`：
 
 ```ts
-// 入参 ChapterPayload
+import type {
+  ChapterContentContract,
+  ChapterPayload,
+} from "breeze-plugin-kit";
+
+async function getChapter(
+  payload: ChapterPayload,
+): Promise<ChapterContentContract> {}
+```
+
+```ts
 type ChapterPayload = {
   comicId?: string;
   chapterId?: string | number;
@@ -463,7 +514,6 @@ type ChapterPayload = {
   extern?: Record<string, unknown>;
 };
 
-// 返回 ChapterContentContract
 type ChapterContentContract = {
   source: string;
   comicId: string;
@@ -492,12 +542,23 @@ type ChapterContentContract = {
 
 ## 3. 可选能力
 
-### `getPreview(payload)`
+### `getPreview(payload)`（类型见 kit：`PreviewPayload` / `PreviewContentContract`）
 
 `preview` 是可选能力字段。支持预览的图源在 `data.normal` 中返回
 `preview: { enabled: true }`；不支持预览时省略该字段。
 
 详情页确认 `normal.preview.enabled` 后，宿主按页调用插件的 `getPreview`：
+
+```ts
+import type {
+  PreviewContentContract,
+  PreviewPayload,
+} from "breeze-plugin-kit";
+
+async function getPreview(
+  payload: PreviewPayload,
+): Promise<PreviewContentContract> {}
+```
 
 ```ts
 type PreviewPayload = {
@@ -533,20 +594,23 @@ type PreviewContentContract = {
 
 当 `paging.hasReachedMax` 为 `true` 时，宿主停止继续请求。
 
-### `getDownloadConcurrency()`
+### `getDownloadConcurrency()`（类型见 kit：`DownloadConcurrencyResult`）
 
 下载章节前，宿主调用该函数获取图片下载并发数。**可选实现**：
 未实现、返回非法或调用失败时，宿主回落为 `5`。
 
 ```ts
-// 返回 DownloadConcurrencyResult（顶层字段即可，也兼容 data 包一层）
+import type { DownloadConcurrencyResult } from "breeze-plugin-kit";
+
+async function getDownloadConcurrency(): Promise<DownloadConcurrencyResult> {
+  return { concurrency: 3 };
+}
+```
+
+```ts
 type DownloadConcurrencyResult = {
   concurrency: number;
 };
-
-async function getDownloadConcurrency() {
-  return { concurrency: 3 };
-}
 ```
 
 > 约束：宿主会将返回值取整并钳制到 `1~32`，每下载一章调用一次。
@@ -555,31 +619,49 @@ async function getDownloadConcurrency() {
 
 ## 4. 社交 API
 
-### `toggleLike(payload)`
+### `toggleLike(payload)`（类型见 kit：`ToggleLikePayload` / `ToggleLikeResult`）
 
 ```ts
-// 入参 ToggleLikePayload
+import type {
+  ToggleLikePayload,
+  ToggleLikeResult,
+} from "breeze-plugin-kit";
+
+async function toggleLike(
+  payload: ToggleLikePayload,
+): Promise<ToggleLikeResult> {}
+```
+
+```ts
 type ToggleLikePayload = {
   comicId?: string;
   currentLiked?: boolean;
   extern?: Record<string, unknown>;
 };
 
-// 返回 ToggleLikeResult
 type ToggleLikeResult = { liked: boolean };
 ```
 
-### `toggleFavorite(payload)`
+### `toggleFavorite(payload)`（类型见 kit：`ToggleFavoritePayload` / `ToggleFavoriteResult`）
 
 ```ts
-// 入参 ToggleFavoritePayload
+import type {
+  ToggleFavoritePayload,
+  ToggleFavoriteResult,
+} from "breeze-plugin-kit";
+
+async function toggleFavorite(
+  payload: ToggleFavoritePayload,
+): Promise<ToggleFavoriteResult> {}
+```
+
+```ts
 type ToggleFavoritePayload = {
   comicId?: string;
   currentFavorite?: boolean;
   extern?: Record<string, unknown>;
 };
 
-// 返回 ToggleFavoriteResult
 type ToggleFavoriteResult = {
   favorited: boolean;
   nextStep: "none" | "selectFolder";
@@ -588,17 +670,27 @@ type ToggleFavoriteResult = {
 
 `nextStep` 为 `selectFolder` 时，宿主会继续调用 `listFavoriteFolders` 和 `moveFavoriteToFolder`。
 
-### `listFavoriteFolders()`
+### `listFavoriteFolders()`（类型见 kit：`ListFavoriteFoldersResult`）
 
 ```ts
-// 返回 ListFavoriteFoldersResult
+import type { ListFavoriteFoldersResult } from "breeze-plugin-kit";
+
+async function listFavoriteFolders(): Promise<ListFavoriteFoldersResult> {}
+```
+
+```ts
 type ListFavoriteFoldersResult = { items: Array<{ id: string; name: string }> };
 ```
 
-### `moveFavoriteToFolder(payload)`
+```ts
+import type { MoveFavoriteToFolderPayload } from "breeze-plugin-kit";
+
+async function moveFavoriteToFolder(
+  payload: MoveFavoriteToFolderPayload,
+): Promise<{ ok: boolean }> {}
+```
 
 ```ts
-// 入参 MoveFavoriteToFolderPayload
 type MoveFavoriteToFolderPayload = {
   comicId?: string;
   folderId?: string;
@@ -606,7 +698,6 @@ type MoveFavoriteToFolderPayload = {
   extern?: Record<string, unknown>;
 };
 
-// 返回 { ok: boolean }
 ```
 
 以上三个函数属于旧版收藏协议。新插件应实现 `startFavoriteAction` 和
@@ -614,17 +705,43 @@ type MoveFavoriteToFolderPayload = {
 
 完整定义和实现示例见[云端收藏工作流](/guide/favorite-workflow)。
 
-### 评论流
+### 评论流（类型见 kit：`CommentFeedPayload` / `CommentFeedContract` 等）
 
 ```ts
-// 入参 CommentFeedPayload
+import type {
+  CommentFeedContract,
+  CommentFeedPayload,
+  CommentMutationContract,
+  CommentPostPayload,
+  CommentRepliesContract,
+  CommentRepliesPayload,
+  CommentReplyPayload,
+} from "breeze-plugin-kit";
+
+async function getCommentFeed(
+  payload: CommentFeedPayload,
+): Promise<CommentFeedContract> {}
+
+async function loadCommentReplies(
+  payload: CommentRepliesPayload,
+): Promise<CommentRepliesContract> {}
+
+async function postComment(
+  payload: CommentPostPayload,
+): Promise<CommentMutationContract> {}
+
+async function postCommentReply(
+  payload: CommentReplyPayload,
+): Promise<CommentMutationContract> {}
+```
+
+```ts
 type CommentFeedPayload = {
   comicId?: string;
   page?: number;
   extern?: Record<string, unknown>;
 };
 
-// 返回 CommentFeedContract
 type CommentFeedContract = {
   source: string;
   extern: Record<string, unknown> | null;
@@ -648,7 +765,6 @@ type CommentItem = {
   extern: Record<string, unknown>;
 };
 
-// 加载回复
 type CommentRepliesPayload = {
   comicId?: string;
   commentId?: string;
@@ -667,14 +783,12 @@ type CommentRepliesContract = {
   };
 };
 
-// 发评论
 type CommentPostPayload = {
   comicId?: string;
   content?: string;
   extern?: Record<string, unknown>;
 };
 
-// 回复评论
 type CommentReplyPayload = {
   comicId?: string;
   commentId?: string;
@@ -682,7 +796,6 @@ type CommentReplyPayload = {
   extern?: Record<string, unknown>;
 };
 
-// 发评/回复的统一返回
 type CommentMutationContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "commentMutation" };
@@ -715,12 +828,17 @@ type CommentMutationContract = {
 - 功能页四种区块怎么做 → `getFunctionPage(payload)`
 - 筛选参数如何合并进列表请求 → 6.2；完整调用链 → 6.5
 
-### `getAdvancedSearchScheme()`
+### `getAdvancedSearchScheme()`（类型见 kit：`AdvancedSearchContract`）
 
 定义搜索页的高级搜索筛选项。用户选中后，筛选值会通过 `extern` 传入 `searchComic`。
 
 ```ts
-// 返回 AdvancedSearchContract
+import type { AdvancedSearchContract } from "breeze-plugin-kit";
+
+async function getAdvancedSearchScheme(): Promise<AdvancedSearchContract> {}
+```
+
+```ts
 type AdvancedSearchContract = {
   source: string;
   scheme: {
@@ -740,12 +858,17 @@ type AdvancedSearchField = {
 };
 ```
 
-### `getComicListSceneBundle()`
+### `getComicListSceneBundle()`（类型见 kit：`ComicListSceneBundleContract`）
 
 定义发现页默认列表场景，返回 `data.scene`，宿主据此渲染列表页和调用 `body.request.fnPath` / `filter.fnPath`。
 
 ```ts
-// 返回 ComicListSceneBundleContract
+import type { ComicListSceneBundleContract } from "breeze-plugin-kit";
+
+async function getComicListSceneBundle(): Promise<ComicListSceneBundleContract> {}
+```
+
+```ts
 type ComicListSceneBundleContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "comicListSceneBundle" };
@@ -755,7 +878,7 @@ type ComicListSceneBundleContract = {
 
 `ComicListScene` 类型见 `getInfo` 一节。
 
-### `getRankingData(payload)`
+### `getRankingData(payload)`（类型见 kit：`SearchComicPayload` / `ComicPagedListContract`）
 
 列表数据函数，由 `ComicListScene.body.request.fnPath` 指定。宿主分页请求列表数据时调用。
 
@@ -768,9 +891,17 @@ type ComicListSceneBundleContract = {
 `viewsCount` / `updatedAt` / `finished`，否则对应位置留空。
 
 ```ts
-// 入参同 SearchComicPayload（含 paging + extern）
+import type {
+  ComicPagedListContract,
+  SearchComicPayload,
+} from "breeze-plugin-kit";
 
-// 返回 ComicPagedListContract
+async function getRankingData(
+  payload: SearchComicPayload,
+): Promise<ComicPagedListContract> {}
+```
+
+```ts
 type ComicPagedListContract = {
   source: string;
   extern?: Record<string, unknown> | null;
@@ -779,7 +910,7 @@ type ComicPagedListContract = {
 };
 ```
 
-### `getRankingFilterBundle()`（示例名，按需配置）
+### `getRankingFilterBundle()`（示例名，按需配置，类型见 kit：`FilterBundleContract`）
 
 列表筛选函数，由 `ComicListScene.filter.fnPath` 指定。`filter` 本身可选：
 不需要列表筛选时直接省略 `scene.filter`，此时列表页不展示筛选按钮；
@@ -795,7 +926,12 @@ type ComicPagedListContract = {
 `option.result.core` / `result.extern` 在用户确认后合并进下一次列表请求，合并规则见 6.2。
 
 ```ts
-// 返回 FilterBundleContract
+import type { FilterBundleContract } from "breeze-plugin-kit";
+
+async function getRankingFilterBundle(): Promise<FilterBundleContract> {}
+```
+
+```ts
 type FilterBundleContract = {
   source: string;
   scheme: {
@@ -830,7 +966,7 @@ type FilterOption = {
 示例（含二级联动：部分父选项有子选项，部分没有；选中带 `children` 的父选项后才展开子选项）：
 
 ```ts
-async function getRankingFilterBundle() {
+async function getRankingFilterBundle(): Promise<FilterBundleContract> {
   return {
     source: PLUGIN_ID,
     scheme: {
@@ -885,10 +1021,21 @@ async function getRankingFilterBundle() {
 // 选中「最新」则直接合并 { ..., type: "0" }，无二级面板。合并规则见 6.2。
 ```
 
-### `getFunctionPage(payload)`
+### `getFunctionPage(payload)`（类型见 kit：`GetFunctionPagePayload` / `FunctionPageContract`）
 
 功能页数据函数，由 `openPluginFunction` 的 `payload.id` 指定。点进功能页入口后宿主调用，
 入参 `{ id, page, core, extern }`（`id` 即入口配置的 `payload.id`），未知 `id` 应抛错。
+
+```ts
+import type {
+  FunctionPageContract,
+  GetFunctionPagePayload,
+} from "breeze-plugin-kit";
+
+async function getFunctionPage(
+  payload: GetFunctionPagePayload,
+): Promise<FunctionPageContract> {}
+```
 
 页面样式由 `scheme.body` 决定，`data` 按 `body` 引用的 `key` 提供内容。`scheme.body` 固定为
 `{ type: "list", children: [...] }` 容器，`children` 每项声明一种区块及其数据来源：
@@ -908,7 +1055,6 @@ async function getRankingFilterBundle() {
 功能页适合放 `chip-list` 这类轻量区块，`"page"` 整页适合放宫格 / 分区 / 网格。
 
 ```ts
-// 入参 GetFunctionPagePayload
 type GetFunctionPagePayload = {
   id?: string;
   page?: number;
@@ -916,7 +1062,6 @@ type GetFunctionPagePayload = {
   extern?: Record<string, unknown>;
 };
 
-// 返回 FunctionPageContract
 type FunctionPageContract = {
   source: string;
   scheme: {
@@ -933,14 +1078,24 @@ type FunctionPageContract = {
 
 ## 6. 设置
 
-### `getSettingsBundle()`
+### `getSettingsBundle()`（类型见 kit：`SettingsBundleContract`）
 
 ```ts
-// 返回 SettingsBundleContract
+import type { SettingsBundleContract } from "breeze-plugin-kit";
+
+async function getSettingsBundle(): Promise<SettingsBundleContract> {}
+```
+
+```ts
 type SettingsBundleContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "settings"; sections: SettingsSection[] };
-  data: { canShowUserInfo: boolean; values: Record<string, unknown> };
+  data: {
+    canShowUserInfo: boolean;
+    /** 声明支持登录页登录，设置页显示登录入口。 */
+    canLogin?: boolean;
+    values: Record<string, unknown>;
+  };
 };
 
 type SettingsSection = {
@@ -969,12 +1124,20 @@ type BaseField = {
 
 当用户修改携带 `fnPath` 的字段值时，宿主调用该函数，入参 `{ extern: Record<string, unknown>, key: string, value: unknown }`。
 
-### `getCapabilitiesBundle()`
+### `getCapabilitiesBundle()`（类型见 kit：`CapabilitiesBundleContract` / `CapabilityAction`）
 
 设置页底部"操作"区段，点击后调用对应 `fnPath`。
 
 ```ts
-// 返回 CapabilitiesBundleContract
+import type {
+  CapabilitiesBundleContract,
+  CapabilityAction,
+} from "breeze-plugin-kit";
+
+async function getCapabilitiesBundle(): Promise<CapabilitiesBundleContract> {}
+```
+
+```ts
 type CapabilitiesBundleContract = {
   source: string;
   scheme: {
@@ -988,12 +1151,17 @@ type CapabilitiesBundleContract = {
 type CapabilityAction = { key?: string; title: string; fnPath: string };
 ```
 
-### `getUserInfoBundle()`
+### `getUserInfoBundle()`（类型见 kit：`UserInfoBundleContract`）
 
 设置页用户信息卡片。
 
 ```ts
-// 返回 UserInfoBundleContract
+import type { UserInfoBundleContract } from "breeze-plugin-kit";
+
+async function getUserInfoBundle(): Promise<UserInfoBundleContract> {}
+```
+
+```ts
 type UserInfoBundleContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "userInfo" };
@@ -1005,6 +1173,105 @@ type UserInfoBundleContract = {
   };
 };
 ```
+
+---
+
+## 6.5 登录
+
+登录页由插件声明表单、宿主负责渲染。流程：插件在需要登录时抛
+`type: "unauthorized"` 错误（只带 `source` 与 `message`）→ 宿主弹确认框 →
+用户确认后跳转登录页，登录页调 `getLoginBundle` 现取表单 → 提交调
+`action.fnPath`，成功自动关闭，失败弹失败原因。
+
+### `getLoginBundle()`（类型见 kit：`LoginBundleContract` / `LoginField`）
+
+返回登录表单。字段 `kind` 取 `text` / `password` / `multiline`，
+分别对应普通输入、密码框、多行输入（cookie / apiKey 用单行或多行文本即可）。
+`data.values` 为回填值（建议只回填账号，密码留空）。
+
+```ts
+import type {
+  LoginBundleContract,
+  LoginBundleInit,
+  LoginField,
+} from "breeze-plugin-kit";
+
+async function getLoginBundle(): Promise<LoginBundleContract> {}
+```
+
+完整形状（与 kit 类型一致，`buildLoginBundle` 入参为 `LoginBundleInit`）：
+
+```ts
+type LoginBundleInit = {
+  title: string;
+  fields: LoginField[];
+  submitFnPath: string;
+  submitText?: string;
+  values?: Record<string, unknown>;
+};
+```
+
+```ts
+type LoginBundleContract = {
+  source: string;
+  scheme: {
+    version: "1.0.0";
+    type: "login";
+    title?: string;
+    fields: LoginField[];
+    action: { fnPath: string; submitText?: string; label?: string };
+  };
+  data?: { values?: Record<string, unknown> } & Record<string, unknown>;
+};
+
+type LoginField = {
+  key: string;
+  kind?: "text" | "password" | "multiline";
+  label?: string;
+  required?: boolean;
+  placeholder?: string;
+  help?: string;
+};
+```
+
+提交时宿主调用 `action.fnPath`，表单值放在 `core.values` 中。登录态持久化
+由插件自己经 `pluginConfig` 完成，宿主不碰。
+
+### need-login 错误
+
+需要登录时抛 JSON 字符串错误，宿主识别 `type: "unauthorized"` 后走登录流程。
+直接用 kit 的 `buildUnauthorizedError`（同步函数，只带身份与文案）：
+
+```ts
+import {
+  buildLoginBundle,
+  buildUnauthorizedError,
+} from "breeze-plugin-kit";
+import type {
+  LoginBundleContract,
+  LoginBundleInit,
+} from "breeze-plugin-kit";
+
+async function getLoginBundle(): Promise<LoginBundleContract> {
+  return buildLoginBundle(PLUGIN_ID, {
+    title: "示例登录",
+    fields: [
+      { key: "account", kind: "text", label: "用户名", required: true },
+      { key: "password", kind: "password", label: "密码", required: true },
+    ],
+    submitFnPath: "loginWithPassword",
+    values: { account: await authConfig.load("auth.account") },
+  } satisfies LoginBundleInit);
+}
+
+// 鉴权失败处：
+throw buildUnauthorizedError(PLUGIN_ID, "登录过期，请重新登录");
+```
+
+### 设置页登录入口
+
+`getSettingsBundle` 的 `data` 声明 `canLogin: true` 后，设置页用户信息区底部
+会出现"账号登录"行，点击打开登录页。推荐使用此办法进行登录或设置鉴权密钥。
 
 ---
 

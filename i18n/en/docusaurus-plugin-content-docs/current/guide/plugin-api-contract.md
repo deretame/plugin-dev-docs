@@ -98,12 +98,17 @@ Callbacks: plugins set `fnPath` on settings / capabilities; the host calls them 
 
 ## 2. Core APIs
 
-### `getInfo()`
+### `getInfo()` (types: `InfoContract` in kit)
 
 Returns plugin metadata and feature entries.
 
 ```ts
-// Return type InfoContract
+import type { InfoContract } from "breeze-plugin-kit";
+
+async function getInfo(): Promise<InfoContract> {}
+```
+
+```ts
 type InfoContract = {
   name: string;
   uuid: string;
@@ -210,17 +215,26 @@ type ComicListRequest = {
 - `openComicDetail` is deprecated, use `openComicInfo`.
 - The `scene.list` shape is deprecated, use `scene.body.request`.
 
-### `searchComic(payload)`
+### `searchComic(payload)` (types: `SearchComicPayload` / `SearchResultContract` in kit)
 
 ```ts
-// Input SearchComicPayload
+import type {
+  SearchComicPayload,
+  SearchResultContract,
+} from "breeze-plugin-kit";
+
+async function searchComic(
+  payload: SearchComicPayload,
+): Promise<SearchResultContract> {}
+```
+
+```ts
 type SearchComicPayload = {
   keyword?: string;
   page?: number;
   extern?: Record<string, unknown>;
 };
 
-// Return SearchResultContract
 type SearchResultContract = {
   source: string;
   extern: Record<string, unknown> | null;
@@ -260,16 +274,25 @@ type ComicListItem = {
 
 `extern` may include advanced search selections.
 
-### `getComicDetail(payload)`
+### `getComicDetail(payload)` (types: `ComicDetailPayload` / `ComicDetailContract` in kit)
 
 ```ts
-// Input ComicDetailPayload
+import type {
+  ComicDetailContract,
+  ComicDetailPayload,
+} from "breeze-plugin-kit";
+
+async function getComicDetail(
+  payload: ComicDetailPayload,
+): Promise<ComicDetailContract> {}
+```
+
+```ts
 type ComicDetailPayload = {
   comicId?: string;
   extern?: Record<string, unknown>;
 };
 
-// Return ComicDetailContract
 type ComicDetailContract = {
   source: string;
   comicId: string;
@@ -372,17 +395,26 @@ type ChapterPage = {
 };
 ```
 
-### `getReadSnapshot(payload)`
+### `getReadSnapshot(payload)` (types: `ReadSnapshotPayload` / `ReadSnapshotContract` in kit)
 
 ```ts
-// Input ReadSnapshotPayload
+import type {
+  ReadSnapshotContract,
+  ReadSnapshotPayload,
+} from "breeze-plugin-kit";
+
+async function getReadSnapshot(
+  payload: ReadSnapshotPayload,
+): Promise<ReadSnapshotContract> {}
+```
+
+```ts
 type ReadSnapshotPayload = {
   comicId?: string;
   chapterId?: string | number;  // requestId
   extern?: Record<string, unknown>;
 };
 
-// Return ReadSnapshotContract
 type ReadSnapshotContract = {
   source: string;
   extern: Record<string, unknown> | null;
@@ -409,10 +441,20 @@ type ChapterWithPages = ChapterSummary & { pages: ChapterPage[] };
 
 `chapters` is the navigation list (slim); `chapter` is the selected chapter (with `pages`).
 
-### `fetchImageBytes(payload)`
+### `fetchImageBytes(payload)` (types: `FetchImageBytesPayload` / `FetchImageBytesResult` in kit)
 
 ```ts
-// Input FetchImageBytesPayload
+import type {
+  FetchImageBytesPayload,
+  FetchImageBytesResult,
+} from "breeze-plugin-kit";
+
+async function fetchImageBytes(
+  payload: FetchImageBytesPayload,
+): Promise<FetchImageBytesResult> {}
+```
+
+```ts
 type FetchImageBytesPayload = {
   url?: string;
   timeoutMs?: number;
@@ -420,7 +462,6 @@ type FetchImageBytesPayload = {
   extern?: Record<string, unknown>;
 };
 
-// Return type (direct Uint8Array; no longer { nativeBufferId })
 type FetchImageBytesResult = Uint8Array<ArrayBufferLike>;
 ```
 
@@ -447,12 +488,22 @@ async function fetchImageBytes({
 }
 ```
 
-### `getChapter(payload)`
+### `getChapter(payload)` (types: `ChapterPayload` / `ChapterContentContract` in kit)
 
 Used for downloads. Similar to `getReadSnapshot` but with full `scheme + data + comicId/chapterId`:
 
 ```ts
-// Input ChapterPayload
+import type {
+  ChapterContentContract,
+  ChapterPayload,
+} from "breeze-plugin-kit";
+
+async function getChapter(
+  payload: ChapterPayload,
+): Promise<ChapterContentContract> {}
+```
+
+```ts
 type ChapterPayload = {
   comicId?: string;
   chapterId?: string | number;
@@ -460,7 +511,6 @@ type ChapterPayload = {
   extern?: Record<string, unknown>;
 };
 
-// Return ChapterContentContract
 type ChapterContentContract = {
   source: string;
   comicId: string;
@@ -489,7 +539,7 @@ type ChapterContentContract = {
 
 ## 3. Optional Capabilities
 
-### `getPreview(payload)`
+### `getPreview(payload)` (types: `PreviewPayload` / `PreviewContentContract` in kit)
 
 `preview` is an optional capability field. A source that supports previews
 returns `preview: { enabled: true }` in `data.normal`; unsupported sources omit
@@ -497,6 +547,17 @@ the field.
 
 After `normal.preview.enabled` is confirmed, the host calls `getPreview` by
 page:
+
+```ts
+import type {
+  PreviewContentContract,
+  PreviewPayload,
+} from "breeze-plugin-kit";
+
+async function getPreview(
+  payload: PreviewPayload,
+): Promise<PreviewContentContract> {}
+```
 
 ```ts
 type PreviewPayload = {
@@ -533,21 +594,24 @@ may carry pagination cursors or session state.
 
 When `paging.hasReachedMax` is `true`, the host stops requesting more pages.
 
-### `getDownloadConcurrency()`
+### `getDownloadConcurrency()` (types: `DownloadConcurrencyResult` in kit)
 
 Before downloading a chapter, the host calls this function to get the image
 download concurrency. **Optional**: when unimplemented, invalid, or failed,
 the host falls back to `5`.
 
 ```ts
-// Returns DownloadConcurrencyResult (top-level fields; a data wrapper is also accepted)
+import type { DownloadConcurrencyResult } from "breeze-plugin-kit";
+
+async function getDownloadConcurrency(): Promise<DownloadConcurrencyResult> {
+  return { concurrency: 3 };
+}
+```
+
+```ts
 type DownloadConcurrencyResult = {
   concurrency: number;
 };
-
-async function getDownloadConcurrency() {
-  return { concurrency: 3 };
-}
 ```
 
 > The host truncates the value to an integer and clamps it to `1-32`, calling
@@ -557,32 +621,50 @@ async function getDownloadConcurrency() {
 
 ## 4. Social APIs
 
-### `toggleLike(payload)`
+### `toggleLike(payload)` (types: `ToggleLikePayload` / `ToggleLikeResult` in kit)
 
 ```ts
-// Input ToggleLikePayload
+import type {
+  ToggleLikePayload,
+  ToggleLikeResult,
+} from "breeze-plugin-kit";
+
+async function toggleLike(
+  payload: ToggleLikePayload,
+): Promise<ToggleLikeResult> {}
+```
+
+```ts
 type ToggleLikePayload = {
   comicId?: string;
   currentLiked?: boolean;
   extern?: Record<string, unknown>;
 };
 
-// Return ToggleLikeResult
 type ToggleLikeResult = { liked: boolean };
 
 ```
 
-### `toggleFavorite(payload)`
+### `toggleFavorite(payload)` (types: `ToggleFavoritePayload` / `ToggleFavoriteResult` in kit)
 
 ```ts
-// Input ToggleFavoritePayload
+import type {
+  ToggleFavoritePayload,
+  ToggleFavoriteResult,
+} from "breeze-plugin-kit";
+
+async function toggleFavorite(
+  payload: ToggleFavoritePayload,
+): Promise<ToggleFavoriteResult> {}
+```
+
+```ts
 type ToggleFavoritePayload = {
   comicId?: string;
   currentFavorite?: boolean;
   extern?: Record<string, unknown>;
 };
 
-// Return ToggleFavoriteResult
 type ToggleFavoriteResult = {
   favorited: boolean;
   nextStep: "none" | "selectFolder";
@@ -592,17 +674,29 @@ type ToggleFavoriteResult = {
 
 When `nextStep` is `selectFolder`, the host continues with `listFavoriteFolders` and `moveFavoriteToFolder`.
 
-### `listFavoriteFolders()`
+### `listFavoriteFolders()` (types: `ListFavoriteFoldersResult` in kit)
 
 ```ts
-// Return ListFavoriteFoldersResult
+import type { ListFavoriteFoldersResult } from "breeze-plugin-kit";
+
+async function listFavoriteFolders(): Promise<ListFavoriteFoldersResult> {}
+```
+
+```ts
 type ListFavoriteFoldersResult = { items: Array<{ id: string; name: string }> };
 ```
 
-### `moveFavoriteToFolder(payload)`
+### `moveFavoriteToFolder(payload)` (types: `MoveFavoriteToFolderPayload` in kit)
 
 ```ts
-// Input MoveFavoriteToFolderPayload
+import type { MoveFavoriteToFolderPayload } from "breeze-plugin-kit";
+
+async function moveFavoriteToFolder(
+  payload: MoveFavoriteToFolderPayload,
+): Promise<{ ok: boolean }> {}
+```
+
+```ts
 type MoveFavoriteToFolderPayload = {
   comicId?: string;
   folderId?: string;
@@ -610,20 +704,45 @@ type MoveFavoriteToFolderPayload = {
   extern?: Record<string, unknown>;
 };
 
-// Return { ok: boolean }
 ```
 
-### Comment Feed
+### Comment feed (types: CommentFeedPayload / CommentFeedContract etc. in kit)
 
 ```ts
-// Input CommentFeedPayload
+import type {
+  CommentFeedContract,
+  CommentFeedPayload,
+  CommentMutationContract,
+  CommentPostPayload,
+  CommentRepliesContract,
+  CommentRepliesPayload,
+  CommentReplyPayload,
+} from "breeze-plugin-kit";
+
+async function getCommentFeed(
+  payload: CommentFeedPayload,
+): Promise<CommentFeedContract> {}
+
+async function loadCommentReplies(
+  payload: CommentRepliesPayload,
+): Promise<CommentRepliesContract> {}
+
+async function postComment(
+  payload: CommentPostPayload,
+): Promise<CommentMutationContract> {}
+
+async function postCommentReply(
+  payload: CommentReplyPayload,
+): Promise<CommentMutationContract> {}
+```
+
+```ts
 type CommentFeedPayload = {
   comicId?: string;
   page?: number;
   extern?: Record<string, unknown>;
 };
 
-// Return CommentFeedContract
 type CommentFeedContract = {
   source: string;
   extern: Record<string, unknown> | null;
@@ -647,7 +766,6 @@ type CommentItem = {
   extern: Record<string, unknown>;
 };
 
-// Load replies
 type CommentRepliesPayload = {
   comicId?: string;
   commentId?: string;
@@ -666,14 +784,12 @@ type CommentRepliesContract = {
   };
 };
 
-// Post comment
 type CommentPostPayload = {
   comicId?: string;
   content?: string;
   extern?: Record<string, unknown>;
 };
 
-// Reply to comment
 type CommentReplyPayload = {
   comicId?: string;
   commentId?: string;
@@ -681,7 +797,6 @@ type CommentReplyPayload = {
   extern?: Record<string, unknown>;
 };
 
-// Shared return for post / reply
 type CommentMutationContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "commentMutation" };
@@ -714,12 +829,17 @@ What you see after tapping an entry, jump as needed:
 - Function page block styles → `getFunctionPage(payload)`
 - How filter params merge into list requests → 6.2; full call chain → 6.5
 
-### `getAdvancedSearchScheme()`
+### `getAdvancedSearchScheme()` (types: `AdvancedSearchContract` in kit)
 
 Defines advanced search fields. Selected values are passed to `searchComic` via `extern`.
 
 ```ts
-// Return AdvancedSearchContract
+import type { AdvancedSearchContract } from "breeze-plugin-kit";
+
+async function getAdvancedSearchScheme(): Promise<AdvancedSearchContract> {}
+```
+
+```ts
 type AdvancedSearchContract = {
   source: string;
   scheme: {
@@ -739,12 +859,17 @@ type AdvancedSearchField = {
 };
 ```
 
-### `getComicListSceneBundle()`
+### `getComicListSceneBundle()` (types: `ComicListSceneBundleContract` in kit)
 
 Defines the default Discover list scene. Returns `data.scene`; host renders the list and calls `body.request.fnPath` / `filter.fnPath`.
 
 ```ts
-// Return ComicListSceneBundleContract
+import type { ComicListSceneBundleContract } from "breeze-plugin-kit";
+
+async function getComicListSceneBundle(): Promise<ComicListSceneBundleContract> {}
+```
+
+```ts
 type ComicListSceneBundleContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "comicListSceneBundle" };
@@ -754,7 +879,7 @@ type ComicListSceneBundleContract = {
 
 `ComicListScene` is defined under `getInfo`.
 
-### `getRankingData(payload)`
+### `getRankingData(payload)` (types: `SearchComicPayload` / `ComicPagedListContract` in kit)
 
 List data function named by `ComicListScene.body.request.fnPath`. Called when the host pages list data.
 
@@ -767,9 +892,17 @@ bytes come from `fetchImageBytes`); `subtitle` / `metadata` / `likesCount` / `vi
 `updatedAt` / `finished` are recommended, otherwise left blank.
 
 ```ts
-// Input same shape as SearchComicPayload (paging + extern)
+import type {
+  ComicPagedListContract,
+  SearchComicPayload,
+} from "breeze-plugin-kit";
 
-// Return ComicPagedListContract
+async function getRankingData(
+  payload: SearchComicPayload,
+): Promise<ComicPagedListContract> {}
+```
+
+```ts
 type ComicPagedListContract = {
   source: string;
   extern?: Record<string, unknown> | null;
@@ -778,7 +911,7 @@ type ComicPagedListContract = {
 };
 ```
 
-### `getRankingFilterBundle()` (example name, optional)
+### `getRankingFilterBundle()` (example name, optional, types: `FilterBundleContract` in kit)
 
 List filter function named by `ComicListScene.filter.fnPath`. `filter` itself is optional:
 omit `scene.filter` when the list needs no filtering and the list page shows no filter button;
@@ -795,7 +928,12 @@ second-level linked options. `option.result.core` / `result.extern` merge into t
 list request on confirm; merge rules: 6.2.
 
 ```ts
-// Return FilterBundleContract
+import type { FilterBundleContract } from "breeze-plugin-kit";
+
+async function getRankingFilterBundle(): Promise<FilterBundleContract> {}
+```
+
+```ts
 type FilterBundleContract = {
   source: string;
   scheme: {
@@ -830,7 +968,7 @@ type FilterOption = {
 Example (cascading: some parents carry `children`, some don't; children open only after tapping a parent that has them):
 
 ```ts
-async function getRankingFilterBundle() {
+async function getRankingFilterBundle(): Promise<FilterBundleContract> {
   return {
     source: PLUGIN_ID,
     scheme: {
@@ -885,7 +1023,7 @@ async function getRankingFilterBundle() {
 // picking "Latest" merges { ..., type: "0" } with no second panel. Merge rules: 6.2.
 ```
 
-### `getFunctionPage(payload)`
+### `getFunctionPage(payload)` (types: `GetFunctionPagePayload` / `FunctionPageContract` in kit)
 
 Function-page data function named by `openPluginFunction`'s `payload.id`. Called after the
 entry is tapped, with `{ id, page, core, extern }` (`id` is the entry's `payload.id`); throw
@@ -910,7 +1048,17 @@ declares one block and its data source:
 light blocks like `chip-list`; `"page"` suits grids / sections / grids.
 
 ```ts
-// Input GetFunctionPagePayload
+import type {
+  FunctionPageContract,
+  GetFunctionPagePayload,
+} from "breeze-plugin-kit";
+
+async function getFunctionPage(
+  payload: GetFunctionPagePayload,
+): Promise<FunctionPageContract> {}
+```
+
+```ts
 type GetFunctionPagePayload = {
   id?: string;
   page?: number;
@@ -918,7 +1066,6 @@ type GetFunctionPagePayload = {
   extern?: Record<string, unknown>;
 };
 
-// Return FunctionPageContract
 type FunctionPageContract = {
   source: string;
   scheme: {
@@ -935,14 +1082,24 @@ type FunctionPageContract = {
 
 ## 6. Settings
 
-### `getSettingsBundle()`
+### `getSettingsBundle()` (types: `SettingsBundleContract` in kit)
 
 ```ts
-// Return SettingsBundleContract
+import type { SettingsBundleContract } from "breeze-plugin-kit";
+
+async function getSettingsBundle(): Promise<SettingsBundleContract> {}
+```
+
+```ts
 type SettingsBundleContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "settings"; sections: SettingsSection[] };
-  data: { canShowUserInfo: boolean; values: Record<string, unknown> };
+  data: {
+    canShowUserInfo: boolean;
+    /** Declare login-page support; the settings page shows a login entry. */
+    canLogin?: boolean;
+    values: Record<string, unknown>;
+  };
 };
 
 type SettingsSection = {
@@ -971,12 +1128,20 @@ type BaseField = {
 
 When the user changes a field with `fnPath`, the host calls that function with `{ extern: Record<string, unknown>, key: string, value: unknown }`.
 
-### `getCapabilitiesBundle()`
+### `getCapabilitiesBundle()` (types: `CapabilitiesBundleContract` / `CapabilityAction` in kit)
 
 Bottom “Actions” section on the settings page; click calls the matching `fnPath`.
 
 ```ts
-// Return CapabilitiesBundleContract
+import type {
+  CapabilitiesBundleContract,
+  CapabilityAction,
+} from "breeze-plugin-kit";
+
+async function getCapabilitiesBundle(): Promise<CapabilitiesBundleContract> {}
+```
+
+```ts
 type CapabilitiesBundleContract = {
   source: string;
   scheme: {
@@ -990,12 +1155,17 @@ type CapabilitiesBundleContract = {
 type CapabilityAction = { key?: string; title: string; fnPath: string };
 ```
 
-### `getUserInfoBundle()`
+### `getUserInfoBundle()` (types: `UserInfoBundleContract` in kit)
 
 User info card on the settings page.
 
 ```ts
-// Return UserInfoBundleContract
+import type { UserInfoBundleContract } from "breeze-plugin-kit";
+
+async function getUserInfoBundle(): Promise<UserInfoBundleContract> {}
+```
+
+```ts
 type UserInfoBundleContract = {
   source: string;
   scheme: { version: "1.0.0"; type: "userInfo" };
@@ -1007,6 +1177,111 @@ type UserInfoBundleContract = {
   };
 };
 ```
+
+---
+
+## 6.5 Login
+
+The login page is declared by the plugin and rendered by the host. Flow: the
+plugin throws a `type: "unauthorized"` error carrying only `source` and
+`message` → the host shows a confirm dialog → on confirm it navigates to the
+login page, which fetches the form via `getLoginBundle` → submit calls
+`action.fnPath`, closing on success and showing the failure reason on error.
+
+### `getLoginBundle()` (types: `LoginBundleContract` / `LoginField` in kit)
+
+Returns the login form. Field `kind` is `text` / `password` / `multiline` for
+plain input, password input, and multi-line input (cookie / apiKey fit in a
+single- or multi-line text field). `data.values` holds prefilled values
+(prefill account only, leave password empty).
+
+```ts
+import type {
+  LoginBundleContract,
+  LoginBundleInit,
+  LoginField,
+} from "breeze-plugin-kit";
+
+async function getLoginBundle(): Promise<LoginBundleContract> {}
+```
+
+Full shape (matches kit types; `buildLoginBundle` takes `LoginBundleInit`):
+
+```ts
+type LoginBundleInit = {
+  title: string;
+  fields: LoginField[];
+  submitFnPath: string;
+  submitText?: string;
+  values?: Record<string, unknown>;
+};
+```
+
+```ts
+// Returns LoginBundleContract
+type LoginBundleContract = {
+  source: string;
+  scheme: {
+    version: "1.0.0";
+    type: "login";
+    title?: string;
+    fields: LoginField[];
+    action: { fnPath: string; submitText?: string; label?: string };
+  };
+  data?: { values?: Record<string, unknown> } & Record<string, unknown>;
+};
+
+type LoginField = {
+  key: string;
+  kind?: "text" | "password" | "multiline";
+  label?: string;
+  required?: boolean;
+  placeholder?: string;
+  help?: string;
+};
+```
+
+On submit the host calls `action.fnPath` with the form values in `core.values`
+(read them with the kit `readLoginValues`). Login state persistence stays in
+the plugin via `pluginConfig`; the host never touches it.
+
+### need-login error
+
+Throw a JSON-string error when login is needed; the host recognizes
+`type: "unauthorized"` and starts the login flow. Use the kit
+`buildUnauthorizedError`:
+
+```ts
+import {
+  buildLoginBundle,
+  buildUnauthorizedError,
+} from "breeze-plugin-kit";
+import type {
+  LoginBundleContract,
+  LoginBundleInit,
+} from "breeze-plugin-kit";
+
+async function getLoginBundle(): Promise<LoginBundleContract> {
+  return buildLoginBundle(PLUGIN_ID, {
+    title: "Example login",
+    fields: [
+      { key: "account", kind: "text", label: "Username", required: true },
+      { key: "password", kind: "password", label: "Password", required: true },
+    ],
+    submitFnPath: "loginWithPassword",
+    values: { account: await authConfig.load("auth.account") },
+  } satisfies LoginBundleInit);
+}
+
+// At auth failures:
+throw buildUnauthorizedError(PLUGIN_ID, "Login expired, please log in again");
+```
+
+### Settings login entry
+
+Declare `canLogin: true` in `getSettingsBundle` `data` and the settings user
+info area gains an "Account login" row opening the login page. Prefer this for
+login or auth-secret setup.
 
 ---
 

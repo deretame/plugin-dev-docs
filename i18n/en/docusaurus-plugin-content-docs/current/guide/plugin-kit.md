@@ -50,6 +50,10 @@ import type {
   CapabilitiesBundleContract,
   UserInfoBundleContract,
   FunctionPageContract,
+  LoginBundleContract,
+  LoginBundleInit,
+  LoginField,
+  LoginSubmitPayload,
 } from "breeze-plugin-kit";
 ```
 
@@ -201,6 +205,62 @@ const { value } = JSON.parse(raw);
 
 > Note: `save` `value` is a string. The Dart side tries `jsonDecode`: on success it stores the decoded value; on failure it stores the raw string.
 
+### `authConfig` / Login Helpers — Login Forms & need-login Errors
+
+`authConfig` is a string-friendly wrapper over `pluginConfig` that handles ok-envelope
+encode/decode, so account/password access needs no manual `JSON.parse` / `JSON.stringify`:
+
+```ts
+import { authConfig } from "breeze-plugin-kit";
+
+await authConfig.save("auth.account", account);
+const account = await authConfig.load("auth.account", "");
+```
+
+Full login helpers (see API Contract §6.5 Login):
+
+```ts
+import {
+  authConfig,
+  buildLoginBundle,
+  buildUnauthorizedError,
+  readLoginValues,
+} from "breeze-plugin-kit";
+import type {
+  LoginBundleContract,
+  LoginBundleInit,
+  LoginSubmitPayload,
+} from "breeze-plugin-kit";
+
+async function getLoginBundle(): Promise<LoginBundleContract> {
+  return buildLoginBundle(PLUGIN_ID, {
+    title: "Example login",
+    fields: [
+      { key: "account", kind: "text", label: "Username", required: true },
+      { key: "password", kind: "password", label: "Password", required: true },
+    ],
+    submitFnPath: "loginWithPassword",
+    values: { account: await authConfig.load("auth.account") },
+  } satisfies LoginBundleInit);
+}
+
+async function loginWithPassword(payload: LoginSubmitPayload = {}) {
+  const { account, password } = readLoginValues(payload);
+  // ... call the login API, then persist on success
+  await authConfig.save("auth.account", account);
+  await authConfig.save("auth.password", password);
+}
+
+// At auth failures:
+throw buildUnauthorizedError(PLUGIN_ID, "Login expired, please log in again");
+```
+
+| Export | Description |
+| ------ | ----------- |
+| `readLoginValues(payload)` | Extract form values from `core.values` |
+| `buildLoginBundle(source, init)` | Build the `getLoginBundle` return value |
+| `buildUnauthorizedError(source, message?)` | Build a host-recognized need-login error |
+| `authConfig.load/save` | Persistent config access with encode/decode |
 ### `runtime` — Runtime Utilities
 
 ```ts
