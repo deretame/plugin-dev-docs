@@ -354,6 +354,8 @@ type PreviewCapability = {
 type ActionItem = {
   name: string;
   onTap: Record<string, unknown>;
+  /** Long-press copy text. Falls back to name when absent or null. */
+  onLongPress?: string | null;
   extern: Record<string, unknown>;
 };
 type ImageItem = {

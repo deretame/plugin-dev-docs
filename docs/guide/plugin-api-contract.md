@@ -358,6 +358,8 @@ type PreviewCapability = {
 type ActionItem = {
   name: string;
   onTap: Record<string, unknown>;
+  /** 长按复制的文本。缺省或 null 时复制 name。 */
+  onLongPress?: string | null;
   extern: Record<string, unknown>;
 };
 type ImageItem = {
