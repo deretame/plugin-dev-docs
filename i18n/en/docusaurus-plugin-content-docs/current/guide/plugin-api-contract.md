@@ -1245,8 +1245,17 @@ type LoginField = {
 
 On submit the host calls `action.fnPath` with the form values in `core.values`
 (read them with the kit `readLoginValues`). Login state persistence stays in
-the plugin via `pluginConfig`; the host never touches it.
+the plugin via `pluginConfig`; the host never touches it. The login function
+may return `message?: string | null` as the success toast (absent/null/blank
+falls back to the host default), see the kit `LoginSubmitResult`:
 
+```ts
+type LoginSubmitResult = {
+  source: string;
+  message?: string | null;
+  data?: { message?: string | null } & Record<string, unknown>;
+} & Record<string, unknown>;
+```
 ### need-login error
 
 Throw a JSON-string error when login is needed; the host recognizes

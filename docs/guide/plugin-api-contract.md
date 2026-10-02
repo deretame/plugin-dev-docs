@@ -1237,8 +1237,16 @@ type LoginField = {
 ```
 
 提交时宿主调用 `action.fnPath`，表单值放在 `core.values` 中。登录态持久化
-由插件自己经 `pluginConfig` 完成，宿主不碰。
+由插件自己经 `pluginConfig` 完成，宿主不碰。登录函数可返回 `message?: string | null`
+作为登录成功提示（缺省/null/空白时宿主用默认文案），类型见 kit 的 `LoginSubmitResult`：
 
+```ts
+type LoginSubmitResult = {
+  source: string;
+  message?: string | null;
+  data?: { message?: string | null } & Record<string, unknown>;
+} & Record<string, unknown>;
+```
 ### need-login 错误
 
 需要登录时抛 JSON 字符串错误，宿主识别 `type: "unauthorized"` 后走登录流程。
