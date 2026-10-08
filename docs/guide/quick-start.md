@@ -49,7 +49,7 @@ export const PLUGIN_ID = "你的插件UUID";
 修改 `src/get-info.ts` 中的 `buildPluginInfo()`：
 
 - `npmName`：需与 `package.json` 中的 `name` 一致。如果发布到 npm，会用于 jsDelivr CDN 加速；未发布可留空。
-- 其他字段（`name`、`describe`、`creator`、`iconUrl`、`home`、`updateUrl`）按需修改。
+- 其他字段（`name`、`describe`、`iconUrl`、`home`、`updateUrl`）按需修改。
 
 ### 功能入口
 

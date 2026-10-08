@@ -113,7 +113,6 @@ type InfoContract = {
   name: string;
   uuid: string;
   iconUrl: string;
-  creator: { name: string; describe: string; coverUrl?: string };
   describe: string;
   version: string;
   home?: string;
@@ -1100,6 +1099,12 @@ type SettingsBundleContract = {
     canShowUserInfo: boolean;
     /** Declare login-page support; the settings page shows a login entry. */
     canLogin?: boolean;
+    /** Login entry title; falls back to the host default. */
+    loginTitle?: string | null;
+    /** Login entry subtitle; falls back to the host default. */
+    loginSubtitle?: string | null;
+    /** Declare detail-page support; the settings page shows a detail entry calling `getPluginDetail` on demand. */
+    canShowDetail?: boolean;
     values: Record<string, unknown>;
   };
 };
@@ -1292,7 +1297,36 @@ throw buildUnauthorizedError(PLUGIN_ID, "Login expired, please log in again");
 
 Declare `canLogin: true` in `getSettingsBundle` `data` and the settings user
 info area gains an "Account login" row opening the login page. Prefer this for
-login or auth-secret setup.
+login or auth-secret setup. The title/subtitle can be customized with
+`data.loginTitle` / `data.loginSubtitle` (e.g. cookie or API-key login);
+absent/blank values fall back to the host defaults.
+
+### Plugin detail page (types: `PluginDetailContract` in kit)
+
+Declare `canShowDetail: true` in `getSettingsBundle` `data` and the settings
+page shows a "Plugin detail" entry opening the new detail page. The content is
+fetched on demand via `getPluginDetail`, never prefetched in lists. `describe`
+supports markdown rendering (links open in the external browser):
+
+```ts
+type PluginDetailContract = {
+  source: string;
+  data: {
+    creator?: {
+      name: string;
+      describe?: string | null;
+      iconUrl?: string | null;
+    } | null;
+    describe: string;
+  };
+};
+
+async function getPluginDetail(): Promise<PluginDetailContract> {}
+```
+
+Author display no longer reads `getInfo.creator` (removed): the store shows the
+owner from the cloud `repo` (owner/name), and the detail page shows
+`data.creator.name` from `getPluginDetail`.
 
 ---
 

@@ -120,7 +120,6 @@ type InfoContract = {
   name: string;
   uuid: string;
   iconUrl: string;
-  creator: { name: string; describe: string; coverUrl?: string };
   describe: string;
   version: string;
   home?: string;
@@ -1096,6 +1095,12 @@ type SettingsBundleContract = {
     canShowUserInfo: boolean;
     /** 声明支持登录页登录，设置页显示登录入口。 */
     canLogin?: boolean;
+    /** 登录入口标题，缺省用宿主默认「账号登录」。 */
+    loginTitle?: string | null;
+    /** 登录入口副标题，缺省用宿主默认「前往登录」。 */
+    loginSubtitle?: string | null;
+    /** 声明支持新详情页，设置页显示详情入口，按需调 `getPluginDetail`。 */
+    canShowDetail?: boolean;
     values: Record<string, unknown>;
   };
 };
@@ -1282,6 +1287,34 @@ throw buildUnauthorizedError(PLUGIN_ID, "登录过期，请重新登录");
 
 `getSettingsBundle` 的 `data` 声明 `canLogin: true` 后，设置页用户信息区底部
 会出现"账号登录"行，点击打开登录页。推荐使用此办法进行登录或设置鉴权密钥。
+标题/副标题可用 `data.loginTitle` / `data.loginSubtitle` 自定义
+（如 Cookie 登录、API Key 登录），缺省/空白时用宿主默认文案。
+
+### 插件详情页（类型见 kit：`PluginDetailContract`）
+
+`getSettingsBundle` 的 `data` 声明 `canShowDetail: true` 后，设置页插件管理上方
+出现"插件详情"入口，点击打开新详情页。详情内容按需调 `getPluginDetail` 获取，
+不在列表/设置页预取。`describe` 支持 md 渲染（链接用外部浏览器打开）：
+
+```ts
+type PluginDetailContract = {
+  source: string;
+  data: {
+    creator?: {
+      name: string;
+      describe?: string | null;
+      iconUrl?: string | null;
+    } | null;
+    describe: string;
+  };
+};
+
+async function getPluginDetail(): Promise<PluginDetailContract> {}
+```
+
+插件作者展示不再读 `getInfo.creator`（已删除）：商店作者名由云端
+`repo`（owner/name）取 `/` 前的 owner，详情页作者名读
+`getPluginDetail` 返回的 `data.creator.name`。
 
 ---
 

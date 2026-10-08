@@ -49,7 +49,7 @@ Keep `version` in `x.y.z` format so jsDelivr can distribute builds later.
 Edit `buildPluginInfo()` in `src/get-info.ts`:
 
 - `npmName`: must match `name` in `package.json`. Used for jsDelivr CDN acceleration if published to npm; leave empty if not published.
-- Other fields (`name`, `describe`, `creator`, `iconUrl`, `home`, `updateUrl`) as needed.
+- Other fields (`name`, `describe`, `iconUrl`, `home`, `updateUrl`) as needed.
 
 ### Feature Entries
 
