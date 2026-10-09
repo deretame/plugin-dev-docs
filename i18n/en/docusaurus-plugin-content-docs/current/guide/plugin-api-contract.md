@@ -344,6 +344,12 @@ type ComicDetailNormal = {
 > chapter row still shows a download button, and tapping it toasts the reason
 > instead of starting a download.
 
+> `creator` is required and cannot be omitted. Sources without author info fill in
+> empty values; the host hides the creator card when both `name` and `avatar.url`
+> are empty. Note `avatar` is the only exception: do not fill it with a placeholder
+> `url` via shared image helpers (a non-empty placeholder keeps the card visible);
+> write a fully empty `ImageItem` by hand instead. Set `onTap` to `null` when not clickable.
+
 type PreviewCapability = {
   enabled: boolean;
   extern?: Record<string, unknown>;
@@ -1082,6 +1088,28 @@ type FunctionPageContract = {
 ---
 
 ## 6. Settings
+
+> The host **always calls** `getSettingsBundle` when opening the plugin settings page;
+> a missing export breaks the page (`target is not function: getSettingsBundle`).
+> Plugins without settings must still export it with a minimal bundle:
+>
+> ```ts
+> async function getSettingsBundle(): Promise<SettingsBundleContract> {
+>   return {
+>     source: PLUGIN_ID,
+>     scheme: { version: "1.0.0", type: "settings", sections: [] },
+>     data: { canShowUserInfo: false, values: {} },
+>   };
+> }
+>
+> async function getCapabilitiesBundle(): Promise<CapabilitiesBundleContract> {
+>   return {
+>     source: PLUGIN_ID,
+>     scheme: { version: "1.0.0", type: "capabilities", actions: [] },
+>     data: {},
+>   };
+> }
+> ```
 
 ### `getSettingsBundle()` (types: `SettingsBundleContract` in kit)
 

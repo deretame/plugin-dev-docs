@@ -348,6 +348,11 @@ type ComicDetailNormal = {
 > 例如 `allowDownload: false` 时章节右侧仍显示下载按钮，点击后 toast 提示原因，
 > 而不会直接发起下载。
 
+> `creator` 必填，不可省略。无作者信息的图源填空值即可；`name` 与 `avatar.url`
+> 同时为空时宿主隐藏作者卡片。注意 `avatar` 是唯一的例外：不要用通用图片构造
+> 逻辑给它填占位 `url`（占位非空会导致卡片一直显示），直接手写全空 `ImageItem`；
+> 不可点击时 `onTap` 置 `null`。
+
 type PreviewCapability = {
   enabled: boolean;
   extern?: Record<string, unknown>;
@@ -1078,6 +1083,28 @@ type FunctionPageContract = {
 ---
 
 ## 6. 设置
+
+> 打开插件设置页时宿主**必调** `getSettingsBundle`；未导出会导致设置页报错
+> （`target is not function: getSettingsBundle`）。无配置项的插件也必须导出，
+> 返回最小包即可：
+>
+> ```ts
+> async function getSettingsBundle(): Promise<SettingsBundleContract> {
+>   return {
+>     source: PLUGIN_ID,
+>     scheme: { version: "1.0.0", type: "settings", sections: [] },
+>     data: { canShowUserInfo: false, values: {} },
+>   };
+> }
+>
+> async function getCapabilitiesBundle(): Promise<CapabilitiesBundleContract> {
+>   return {
+>     source: PLUGIN_ID,
+>     scheme: { version: "1.0.0", type: "capabilities", actions: [] },
+>     data: {},
+>   };
+> }
+> ```
 
 ### `getSettingsBundle()`（类型见 kit：`SettingsBundleContract`）
 

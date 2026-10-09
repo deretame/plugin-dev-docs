@@ -45,6 +45,14 @@ const res = await fetch(url, {
 const buf = await res.arrayBuffer();
 ```
 
+> ⚠️ `arrayBuffer()` 底层可能带 `byteOffset`，直接 `new DataView(buf)` /
+> `new Uint8Array(buf)` 会读错位置。解析二进制（索引文件、图片头等）时务必带偏移构造：
+>
+> ```js
+> const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+> const bytes = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+> ```
+
 > 建议：在 `fetchImageBytes` 中**始终携带该请求头**，这是图片能正常显示的最常见原因之一。
 
 ## bridge

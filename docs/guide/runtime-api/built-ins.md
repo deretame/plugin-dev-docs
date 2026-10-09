@@ -56,18 +56,20 @@ const copy = structuredClone({ a: 1, b: [2, 3] });
 
 ## Base64
 
-运行时提供两个全局便捷函数用于 Base64 编解码：
+运行时提供两个全局便捷函数用于 Base64 编解码，直接调用，无需导入：
 
 ```ts
 const bytes = bytesFromBase64("aGVsbG8="); // Uint8Array
 const text = bytesToBase64(new TextEncoder().encode("hello")); // "aGVsbG8="
 ```
 
-`breeze-plugin-kit` 也导出了同名函数与类型，推荐从包中导入：
-
-```ts
-import { bytesToBase64, bytesFromBase64 } from "breeze-plugin-kit";
-```
+> `breeze-plugin-kit` 只提供这两个函数的**类型声明**（`base64.d.ts`），不会导出可运行的值。
+> 从包中 `import { bytesFromBase64 }` 拿到的是类型，运行时调用会失败。
+> 如需显式类型标注，用 `import type`：
+>
+> ```ts
+> import type { Buffer } from "breeze-plugin-kit";
+> ```
 
 通常与 `crypto` 配合使用：先解密得到 `Uint8Array`，再用 `bytesToBase64` 转成字符串。
 

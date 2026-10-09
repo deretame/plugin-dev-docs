@@ -45,6 +45,15 @@ const res = await fetch(url, {
 const buf = await res.arrayBuffer();
 ```
 
+> ⚠️ `arrayBuffer()` may carry a `byteOffset`; bare `new DataView(buf)` /
+> `new Uint8Array(buf)` reads from the wrong position. When parsing binary
+> (index files, image headers, etc.), always construct with the offset:
+>
+> ```js
+> const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+> const bytes = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+> ```
+
 > Recommendation: **always include this header** in `fetchImageBytes`. Missing it is one of the most common reasons images fail to display.
 
 ## bridge

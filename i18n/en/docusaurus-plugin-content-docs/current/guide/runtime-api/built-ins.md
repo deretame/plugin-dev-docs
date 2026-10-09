@@ -56,18 +56,21 @@ const copy = structuredClone({ a: 1, b: [2, 3] });
 
 ## Base64
 
-Two global helpers for Base64 encode/decode:
+Two global helpers for Base64 encode/decode; call them directly, no import needed:
 
 ```ts
 const bytes = bytesFromBase64("aGVsbG8="); // Uint8Array
 const text = bytesToBase64(new TextEncoder().encode("hello")); // "aGVsbG8="
 ```
 
-`breeze-plugin-kit` also exports the same names and types; prefer importing from the package:
-
-```ts
-import { bytesToBase64, bytesFromBase64 } from "breeze-plugin-kit";
-```
+> `breeze-plugin-kit` only provides **type declarations** for these two functions
+> (`base64.d.ts`), not runnable values. Importing `bytesFromBase64` from the package
+> gives you a type, and calling it at runtime will fail. For explicit type
+> annotations, use `import type`:
+>
+> ```ts
+> import type { Buffer } from "breeze-plugin-kit";
+> ```
 
 Often used with `crypto`: decrypt to `Uint8Array`, then `bytesToBase64` for a string.
 

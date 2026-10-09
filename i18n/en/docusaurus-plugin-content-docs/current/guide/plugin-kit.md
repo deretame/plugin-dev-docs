@@ -406,14 +406,11 @@ const buf = crypto.randomBytes(16);
 const uuid = crypto.randomUUID();
 ```
 
-For Base64, pair with `bytesToBase64` / `bytesFromBase64`:
+For Base64, pair with the global `bytesToBase64` / `bytesFromBase64`
+(injected by the runtime, no import needed; `breeze-plugin-kit` only provides their types):
 
 ```ts
-import {
-  requireCryptoLike,
-  bytesToBase64,
-  bytesFromBase64,
-} from "breeze-plugin-kit";
+import { requireCryptoLike } from "breeze-plugin-kit";
 
 const crypto = requireCryptoLike();
 

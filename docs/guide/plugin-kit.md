@@ -417,14 +417,11 @@ const buf = crypto.randomBytes(16);
 const uuid = crypto.randomUUID();
 ```
 
-需要 Base64 编解码时，可以配合 `bytesToBase64` / `bytesFromBase64`：
+需要 Base64 编解码时，可以配合全局的 `bytesToBase64` / `bytesFromBase64`
+（运行时直接注入，无需导入；`breeze-plugin-kit` 只提供其类型声明）：
 
 ```ts
-import {
-  requireCryptoLike,
-  bytesToBase64,
-  bytesFromBase64,
-} from "breeze-plugin-kit";
+import { requireCryptoLike } from "breeze-plugin-kit";
 
 const crypto = requireCryptoLike();
 

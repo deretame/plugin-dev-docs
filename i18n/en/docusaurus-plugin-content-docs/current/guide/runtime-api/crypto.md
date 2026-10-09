@@ -77,13 +77,16 @@ crypto.pbkdf2(password, salt, iterations, keyLen, digest?, callback)
 - ECB, CBC, and GCM all provide encrypt and decrypt
 - **Prefer `const crypto = requireCryptoLike()` then `crypto.aes*`**; avoid calling `bridge.call("crypto.*")` routes directly
 - Legacy `_hex` / `_b64` APIs are ambiguous and deprecated
+- Local Node testing note: Node 18+ ships WebCrypto on `globalThis.crypto`
+  (read-only — direct assignment silently fails), so `requireCryptoLike()` throws
+  `runtime API unavailable: crypto` on shape mismatch. Stub via
+  `Object.defineProperty(globalThis, "crypto", { value: stub })`, and the stub
+  must expose `createHash` / `createHmac` / `randomBytes`.
 
 ```ts
-import {
-  requireCryptoLike,
-  bytesToBase64,
-  bytesFromBase64,
-} from "breeze-plugin-kit";
+import { requireCryptoLike } from "breeze-plugin-kit";
+
+// bytesToBase64 / bytesFromBase64 are runtime globals, no import needed (kit only provides their types).
 
 const crypto = requireCryptoLike();
 

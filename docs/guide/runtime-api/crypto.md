@@ -77,13 +77,15 @@ crypto.pbkdf2(password, salt, iterations, keyLen, digest?, callback)
 - ECB、CBC、GCM 均提供加密和解密
 - **推荐通过 `const crypto = requireCryptoLike()` 调用 `crypto.aes*`**，不建议直接使用 `bridge.call("crypto.*")` 路由
 - 旧版 `_hex` / `_b64` API 行为较为模糊，已废弃，不再建议使用
-
+- 本地 Node 自测注意：Node 18+ 自带 WebCrypto 会占据 `globalThis.crypto`
+  （且该属性只读，直接赋值静默失败），`requireCryptoLike()` 会因形状不符抛
+  `runtime API 不可用: crypto`。自测桩需用 `Object.defineProperty(globalThis,
+  "crypto", { value: stub })` 覆盖，且 stub 须带 `createHash` / `createHmac` /
+  `randomBytes` 三个函数。
 ```ts
-import {
-  requireCryptoLike,
-  bytesToBase64,
-  bytesFromBase64,
-} from "breeze-plugin-kit";
+import { requireCryptoLike } from "breeze-plugin-kit";
+
+// bytesToBase64 / bytesFromBase64 是运行时全局函数，无需导入（kit 只提供其类型）。
 
 const crypto = requireCryptoLike();
 
