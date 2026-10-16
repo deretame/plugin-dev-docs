@@ -13,7 +13,7 @@
 - [ ] Search list `data.items[]` fields are complete (`id` / `title` / `cover` / `metadata` / `raw`)
 - [ ] Detail page `data.normal.comicInfo` + `data.normal.eps` structure is complete
 - [ ] Chapter list and chapter detail use unified fields: `id` / `requestId` / `logicalKey` / `storageChapterId` / `name` / `order`
-- [ ] Chapter images `data.chapter.pages[]` provide `id` / `name` / `path` / `url`
+- [ ] Sources with multiple chapter lists fill `groupTitle` for grouping, with globally unique and refresh-stable `order`
 - [ ] All `extern` passthrough logic is closed-loop
 - [ ] HTML parse results handle null / missing nodes so minor page changes do not crash the whole flow
 

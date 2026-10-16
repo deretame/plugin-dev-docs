@@ -503,15 +503,15 @@ if (payload.action === "removeFromTarget") {
 }
 ```
 
-## 7. 旧协议兼容
+## 7. 旧协议兼容（⚠️已废弃）
+
+> `toggleFavorite` / `listFavoriteFolders` / `moveFavoriteToFolder` 已废弃：仅供兼容、不再维护，随时可能移除。新插件必须实现本章的新版工作流。
 
 宿主目前仍兼容：
 
 - `toggleFavorite`
 - `listFavoriteFolders`
 - `moveFavoriteToFolder`
-
-旧协议只能表达直接收藏、取消收藏和收藏后选择已有收藏夹，不能表达从指定收藏夹移除、创建收藏夹、多步表单或部分成功。
 
 宿主会先调用 `startFavoriteAction`；只有确认插件没有该函数时才回退到旧协议。普通网络错误和业务错误不会被当成“缺少新协议”。
 

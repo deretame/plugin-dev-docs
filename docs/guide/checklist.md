@@ -13,7 +13,7 @@
 - [ ] 搜索列表 `data.items[]` 的字段完整（`id/title/cover/metadata/raw`）
 - [ ] 详情页 `data.normal.comicInfo + data.normal.eps` 结构完整
 - [ ] 章节列表与章节详情使用统一章节字段：`id/requestId/logicalKey/storageChapterId/name/order`
-- [ ] 章节图片 `data.chapter.pages[]` 提供 `id/name/path/url`
+- [ ] 多章节列表的图源已填 `groupTitle` 分组，`order` 全局唯一且刷新稳定
 - [ ] 所有 `extern` 透传逻辑闭环
 - [ ] HTML 解析结果做了空值/缺失节点兜底，不会因为页面结构微调就整体崩溃
 

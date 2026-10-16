@@ -81,9 +81,9 @@ type PluginEnvelope = {
 | `toggleLike`                                       | 详情页点点赞                                          |
 | `startFavoriteAction`                              | 开始云端收藏工作流                                    |
 | `continueFavoriteAction`                           | 继续云端收藏工作流或处理用户输入                      |
-| `toggleFavorite`                                   | 旧版详情页收藏兼容入口                                |
-| `listFavoriteFolders`                              | 旧版收藏后选择收藏夹                                  |
-| `moveFavoriteToFolder`                             | 旧版用户确认收藏夹                                    |
+| ~~`toggleFavorite`~~ ⚠️已废弃 | 旧版详情页收藏兼容入口，仅供兼容、不再维护，新插件请用 `startFavoriteAction` |
+| ~~`listFavoriteFolders`~~ ⚠️已废弃 | 旧版收藏后选择收藏夹，仅供兼容、不再维护，新插件请用 `startFavoriteAction` |
+| ~~`moveFavoriteToFolder`~~ ⚠️已废弃 | 旧版用户确认收藏夹，仅供兼容、不再维护，新插件请用 `startFavoriteAction` |
 | `getCommentFeed`                                   | 打开评论面板 / 翻页                                   |
 | `loadCommentReplies`                               | 展开评论回复                                          |
 | `postComment`                                      | 发送主评论                                            |
@@ -393,6 +393,8 @@ type ChapterSummary = {
   storageChapterId: string; // 下载到本地后的目录名（大部分时候可与 requestId 相同）
   name: string; // 章节名
   order: number; // 章节顺序
+  /** 章节视觉分组标题，缺省 / null / 空白 = 不分组。详见下节「章节分组」。 */
+  groupTitle?: string | null;
   extern: Record<string, unknown>; // 插件透传数据
 };
 
@@ -404,6 +406,41 @@ type ChapterPage = {
   extern: Record<string, unknown>;
 };
 ```
+
+### 章节分组（`groupTitle`）
+
+图源存在多种章节列表时（如"连载" / "番外" / "单行本"），把同组章节的
+`groupTitle` 填成相同值即可。缺省 / `null` / 空白 = 不分组，宿主走单列扁平显示。
+
+```ts
+// 例：raw 侧两组，压平时保留分组信息
+const eps: ChapterSummary[] = [
+  ...serialChapters.map((c, i) => ({
+    ...toSummary(c),
+    groupTitle: "连载",
+    order: i + 1, // order 必须全局唯一且刷新稳定，不能直接用 raw 侧的重叠序号
+  })),
+  ...volumeChapters.map((c, i) => ({
+    ...toSummary(c),
+    groupTitle: "单行本",
+    order: serialChapters.length + i + 1,
+  })),
+];
+```
+
+约定（宿主行为）：
+
+- 数据层保持扁平：`eps` 仍是唯一的章节列表，`order` 全局唯一且刷新稳定，
+  是唯一的排序真相；不要发嵌套分组结构。
+- 组顺序按章节在 `eps` 中的首次出现顺序推导，不另存顺序 key。
+  想让"连载"排第一，就先放连载的章节。
+- `name` 照常填完整标题（如 `"连载—第1话"` 或裸标题 `"第1话"` 都可）：
+  宿主在组内显示时会自动去掉 `"{groupTitle}—"` 前缀（组头已说明组），
+  存储的 `name` 不动；追更/通知等需要消歧义的地方会保留带组形式。
+- 填什么都行：`groupTitle` 是自由文本（`string | null`），
+  有几组、叫什么，全由插件决定，宿主不校验、不映射。
+- 上一话 / 下一话、继续阅读、下载选中等逻辑按全局 `order` 走，不受分组影响，
+  跨组跳转天然可用。
 
 ### `getReadSnapshot(payload)`（类型见 kit：`ReadSnapshotPayload` / `ReadSnapshotContract`）
 
@@ -648,7 +685,10 @@ type ToggleLikePayload = {
 type ToggleLikeResult = { liked: boolean };
 ```
 
-### `toggleFavorite(payload)`（类型见 kit：`ToggleFavoritePayload` / `ToggleFavoriteResult`）
+### ~~`toggleFavorite(payload)`~~ ⚠️已废弃
+
+> 仅供兼容、不再维护。新插件请实现“云端收藏工作流”（`startFavoriteAction` / `continueFavoriteAction`），详见《云端收藏工作流》。
+
 
 ```ts
 import type {
@@ -676,7 +716,9 @@ type ToggleFavoriteResult = {
 
 `nextStep` 为 `selectFolder` 时，宿主会继续调用 `listFavoriteFolders` 和 `moveFavoriteToFolder`。
 
-### `listFavoriteFolders()`（类型见 kit：`ListFavoriteFoldersResult`）
+### ~~`listFavoriteFolders()`~~ ⚠️已废弃
+
+> 仅供兼容、不再维护。新插件请实现“云端收藏工作流”，详见《云端收藏工作流》。
 
 ```ts
 import type { ListFavoriteFoldersResult } from "breeze-plugin-kit";
@@ -706,7 +748,7 @@ type MoveFavoriteToFolderPayload = {
 
 ```
 
-以上三个函数属于旧版收藏协议。新插件应实现 `startFavoriteAction` 和
+以上三个函数属于旧版收藏协议，**已废弃**：仅供兼容、不再维护，随时可能移除。新插件应实现 `startFavoriteAction` 和
 `continueFavoriteAction`，以支持选择/创建收藏夹、从指定收藏夹移除、移动、取消和部分成功。
 
 完整定义和实现示例见[云端收藏工作流](/guide/favorite-workflow)。

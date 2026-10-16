@@ -390,6 +390,8 @@ type ChapterSummary = {
   storageChapterId: string; // local download directory name (often same as requestId)
   name: string;             // chapter title
   order: number;            // order
+  /** Visual group title; missing / null / blank = no grouping. See "Chapter Groups" below. */
+  groupTitle?: string | null;
   extern: Record<string, unknown>; // plugin passthrough
 };
 
@@ -401,6 +403,44 @@ type ChapterPage = {
   extern: Record<string, unknown>;
 };
 ```
+
+### Chapter Groups (`groupTitle`)
+
+When a source has multiple chapter lists (e.g. "Serial" / "Extras" / "Volumes"),
+give chapters of the same group the same `groupTitle`. Missing / `null` / blank
+means no grouping; the host falls back to a flat single-column list.
+
+```ts
+// Example: two raw-side groups, flattened with group info preserved
+const eps: ChapterSummary[] = [
+  ...serialChapters.map((c, i) => ({
+    ...toSummary(c),
+    groupTitle: "Serial",
+    order: i + 1, // order must be globally unique and stable across refreshes;
+                   // never reuse the overlapping raw-side numbers directly
+  })),
+  ...volumeChapters.map((c, i) => ({
+    ...toSummary(c),
+    groupTitle: "Volumes",
+    order: serialChapters.length + i + 1,
+  })),
+];
+```
+
+Host behavior:
+
+- The data layer stays flat: `eps` remains the single chapter list, and `order`
+  (globally unique, stable across refreshes) is the only sort key.
+  Never send a nested group structure.
+- Group order is derived from first appearance in `eps`; no separate order key.
+  Put serial chapters first to list "Serial" first.
+- Fill `name` as usual (either `"Serial—Ch.1"` or bare `"Ch.1"` both work):
+  the host strips the `"{groupTitle}—"` prefix when rendering inside a group
+  (the group header already says it) while the stored `name` is untouched;
+  follow/notification titles keep the qualified form for disambiguation.
+- Free text: `groupTitle` is `string | null`, host never validates or maps it.
+- Prev/next chapter, continue reading, and download selection all follow the
+  global `order` and are unaffected by groups; cross-group navigation just works.
 
 ### `getReadSnapshot(payload)` (types: `ReadSnapshotPayload` / `ReadSnapshotContract` in kit)
 
