@@ -434,9 +434,8 @@ const eps: ChapterSummary[] = [
   是唯一的排序真相；不要发嵌套分组结构。
 - 组顺序按章节在 `eps` 中的首次出现顺序推导，不另存顺序 key。
   想让"连载"排第一，就先放连载的章节。
-- `name` 照常填完整标题（如 `"连载—第1话"` 或裸标题 `"第1话"` 都可）：
-  宿主在组内显示时会自动去掉 `"{groupTitle}—"` 前缀（组头已说明组），
-  存储的 `name` 不动；追更/通知等需要消歧义的地方会保留带组形式。
+- `name` 只填裸标题（如 `"第1话"`），不要自己拼分组前缀（如 `"连载—第1话"`）：
+  分组信息只走 `groupTitle`，宿主按组展示，标题与分组不会混在一起。
 - 填什么都行：`groupTitle` 是自由文本（`string | null`），
   有几组、叫什么，全由插件决定，宿主不校验、不映射。
 - 上一话 / 下一话、继续阅读、下载选中等逻辑按全局 `order` 走，不受分组影响，
@@ -687,7 +686,10 @@ type ToggleLikeResult = { liked: boolean };
 
 ### ~~`toggleFavorite(payload)`~~ ⚠️已废弃
 
-> 仅供兼容、不再维护。新插件请实现“云端收藏工作流”（`startFavoriteAction` / `continueFavoriteAction`），详见《云端收藏工作流》。
+> ⛔ **请勿实现旧版收藏 API**：`toggleFavorite` / `listFavoriteFolders` / `moveFavoriteToFolder`
+> 均已废弃，当前宿主不再要求实现它们，未来版本可能直接移除。新插件只需实现
+> “云端收藏工作流”（`startFavoriteAction` / `continueFavoriteAction`），详见《云端收藏工作流》。
+> 即使为了兼容旧宿主也**不建议**实现旧 API——双协议并存只会增加维护负担。
 
 
 ```ts
@@ -748,8 +750,9 @@ type MoveFavoriteToFolderPayload = {
 
 ```
 
-以上三个函数属于旧版收藏协议，**已废弃**：仅供兼容、不再维护，随时可能移除。新插件应实现 `startFavoriteAction` 和
-`continueFavoriteAction`，以支持选择/创建收藏夹、从指定收藏夹移除、移动、取消和部分成功。
+以上三个函数属于旧版收藏协议，**已废弃**：当前没有任何实现要求，新插件**只实现**
+`startFavoriteAction` 和 `continueFavoriteAction` 即可，以支持选择/创建收藏夹、
+从指定收藏夹移除、移动、取消和部分成功。为避免双协议行为分叉，**不要**同时实现新旧两套收藏入口。
 
 完整定义和实现示例见[云端收藏工作流](/guide/favorite-workflow)。
 
@@ -1102,6 +1105,67 @@ async function getFunctionPage(
 `hasReachedMax` 为 `true` 时宿主停止对该 `key` 的分页请求。`presentation: "dialog"` 的
 功能页适合放 `chip-list` 这类轻量区块，`"page"` 整页适合放宫格 / 分区 / 网格。
 
+实战示例（哔咔插件的热搜 + 导航，`chip-list` 配 dialog、`action-grid` 配 page）：
+
+```ts
+import type { FunctionPageContract } from "breeze-plugin-kit";
+
+async function getFunctionPage(payload = {}): Promise<FunctionPageContract> {
+  const id = String(payload.id ?? payload.extern?.id ?? "");
+
+  // 热搜：标签条，dialog 弹窗展示，点击标签跳搜索。
+  if (id === "hotSearch") {
+    const home = await getHomeData(payload);
+    return {
+      source: PLUGIN_ID,
+      scheme: {
+        version: "1.0.0",
+        type: "page",
+        title: "热搜",
+        body: { type: "list", children: [{ type: "chip-list", key: "items" }] },
+      },
+      data: {
+        items: home.keywords.map((keyword) => ({
+          label: keyword,
+          action: {
+            type: "openSearch",
+            payload: { keyword, extern: { source: "hotSearch" } },
+          },
+        })),
+        hasReachedMax: true,
+      },
+    };
+  }
+
+  // 导航：图标宫格，整页展示点击格子跳对应 openComicList。
+  if (id === "navigation") {
+    const home = await getHomeData(payload);
+    return {
+      source: PLUGIN_ID,
+      scheme: {
+        version: "1.0.0",
+        type: "page",
+        title: "导航",
+        body: { type: "list", children: [{ type: "action-grid", key: "items" }] },
+      },
+      data: {
+        items: home.navItems.map((item) => ({
+          title: item.title,
+          cover: { url: item.cover, path: "", extern: {} },
+          action: {
+            type: "openComicList",
+            payload: { scene: item.scene },
+          },
+        })),
+        hasReachedMax: true,
+      },
+    };
+  }
+
+  throw new Error(`未知功能: ${id}`);
+}
+```
+
 ```ts
 type GetFunctionPagePayload = {
   id?: string;
@@ -1122,7 +1186,58 @@ type FunctionPageContract = {
 };
 ```
 
----
+### 插件首页 / 云端收藏 bundle（类型见 kit：`PluginHomeTab` / `PluginHomePagesBundleContract`）
+
+第一页 `getPluginHomePagesBundle`、第二页 `getPluginCloudFavoritePagesBundle`，
+入参都是空参 `core: {} + extern: { source }`。返回多个 tab，宿主 TabView 切换。
+tab 载荷二选一：`scene` 走 `ComicListPage` 分页列表渲染，`page` 是上面的
+`FunctionPageContract` 走 scheme 渲染（热搜 / 导航直接复用）。
+`header.actions` 只能引用 `getInfo functions` 已定义的功能，Dart 统一渲染。
+
+```ts
+import type {
+  PluginHomePagesBundleContract,
+  PluginCloudFavoritePagesBundleContract,
+} from "breeze-plugin-kit";
+
+async function getPluginHomePagesBundle(
+  payload = {},
+): Promise<PluginHomePagesBundleContract> {
+  const extern = { ...payload.extern, source: PLUGIN_ID };
+  const [hotSearch, navigation] = await Promise.all([
+    getFunctionPage({ core: {}, extern: { ...extern, id: "hotSearch" } }),
+    getFunctionPage({ core: {}, extern: { ...extern, id: "navigation" } }),
+  ]);
+  return {
+    source: PLUGIN_ID,
+    scheme: { version: "1.0.0", type: "homePagesBundle" },
+    data: {
+      tabs: [
+        { id: "hotSearch", title: "热搜", page: hotSearch },
+        { id: "navigation", title: "导航", page: navigation },
+        { id: "ranking", title: "排行榜", page: buildRankingScene() },
+      ],
+    },
+  };
+}
+
+async function getPluginCloudFavoritePagesBundle(): Promise<PluginCloudFavoritePagesBundleContract> {
+  return {
+    source: PLUGIN_ID,
+    scheme: { version: "1.0.0", type: "cloudFavoritePagesBundle" },
+    data: {
+      tabs: [
+        { id: "cloudFavorite", title: "云端收藏", page: buildCloudFavoriteScene() },
+      ],
+    },
+  };
+}
+```
+
+云端收藏入口迁移：`openCloudFavorite` 不再维护，新插件用 `openComicList`
+自建 scene（`body.request.fnPath` 指向收藏数据函数，`filter` 配收藏筛选），
+与排行榜同一套渲染链路。
+
 
 ## 6. 设置
 

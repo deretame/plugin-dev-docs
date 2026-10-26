@@ -74,9 +74,9 @@ Host-invoked functions are triggered by scene; callbacks are invoked by the host
 | `getDownloadConcurrency` | Get image download concurrency before downloading a chapter |
 | `fetchImageBytes` | Read/download image binary |
 | `toggleLike` | Like on detail page |
-| `toggleFavorite` | Favorite on detail page |
-| `listFavoriteFolders` | After favorite, pick folder |
-| `moveFavoriteToFolder` | User confirms folder |
+| ~~`toggleFavorite`~~ ⚠️Deprecated | Legacy detail-page favorite compat entry; do not implement, use `startFavoriteAction` |
+| ~~`listFavoriteFolders`~~ ⚠️Deprecated | Legacy post-favorite folder picker; do not implement, use `startFavoriteAction` |
+| ~~`moveFavoriteToFolder`~~ ⚠️Deprecated | Legacy user-confirmed folder move; do not implement, use `startFavoriteAction` |
 | `getCommentFeed` | Open comments / page |
 | `loadCommentReplies` | Expand comment replies |
 | `postComment` | Post main comment |
@@ -434,10 +434,9 @@ Host behavior:
   Never send a nested group structure.
 - Group order is derived from first appearance in `eps`; no separate order key.
   Put serial chapters first to list "Serial" first.
-- Fill `name` as usual (either `"Serial—Ch.1"` or bare `"Ch.1"` both work):
-  the host strips the `"{groupTitle}—"` prefix when rendering inside a group
-  (the group header already says it) while the stored `name` is untouched;
-  follow/notification titles keep the qualified form for disambiguation.
+- Fill `name` with the bare title (e.g. `"Ch.1"`); do not prepend the group yourself
+  (e.g. `"Serial—Ch.1"`): grouping is carried by `groupTitle` alone, and the host
+  renders the title and the group separately.
 - Free text: `groupTitle` is `string | null`, host never validates or maps it.
 - Prev/next chapter, continue reading, and download selection all follow the
   global `order` and are unaffected by groups; cross-group navigation just works.
@@ -692,7 +691,14 @@ type ToggleLikeResult = { liked: boolean };
 
 ```
 
-### `toggleFavorite(payload)` (types: `ToggleFavoritePayload` / `ToggleFavoriteResult` in kit)
+### ~~`toggleFavorite(payload)`~~ ⚠️Deprecated
+
+> ⛔ **Do not implement the legacy favorite APIs**: `toggleFavorite` / `listFavoriteFolders` /
+> `moveFavoriteToFolder` are all deprecated, the current host has no requirement to implement them,
+> and they may be removed in a future version. New plugins only need the cloud favorite workflow
+> (`startFavoriteAction` / `continueFavoriteAction`), see the Favorite Workflow guide.
+> Implementing the legacy APIs even for old-host compatibility is **discouraged**—running two
+> protocols side by side only adds maintenance burden.
 
 ```ts
 import type {
@@ -721,7 +727,7 @@ type ToggleFavoriteResult = {
 
 When `nextStep` is `selectFolder`, the host continues with `listFavoriteFolders` and `moveFavoriteToFolder`.
 
-### `listFavoriteFolders()` (types: `ListFavoriteFoldersResult` in kit)
+### ~~`listFavoriteFolders()`~~ ⚠️Deprecated (types: `ListFavoriteFoldersResult` in kit)
 
 ```ts
 import type { ListFavoriteFoldersResult } from "breeze-plugin-kit";
@@ -733,7 +739,7 @@ async function listFavoriteFolders(): Promise<ListFavoriteFoldersResult> {}
 type ListFavoriteFoldersResult = { items: Array<{ id: string; name: string }> };
 ```
 
-### `moveFavoriteToFolder(payload)` (types: `MoveFavoriteToFolderPayload` in kit)
+### ~~`moveFavoriteToFolder(payload)`~~ ⚠️Deprecated (types: `MoveFavoriteToFolderPayload` in kit)
 
 ```ts
 import type { MoveFavoriteToFolderPayload } from "breeze-plugin-kit";
@@ -752,6 +758,11 @@ type MoveFavoriteToFolderPayload = {
 };
 
 ```
+
+The three functions above belong to the legacy favorite protocol, which is **deprecated**: there is
+currently no requirement to implement them. New plugins only need `startFavoriteAction` and
+`continueFavoriteAction`. To avoid behavior divergence between two protocols, do **not** implement
+both the new and legacy favorite entries.
 
 ### Comment feed (types: CommentFeedPayload / CommentFeedContract etc. in kit)
 

@@ -19,7 +19,7 @@
 
 ## Business Flows
 
-- [ ] Favorite / like flow (`toggleFavorite` / `toggleLike`) works
+- [ ] Favorite / like flow (`startFavoriteAction` + `continueFavoriteAction` / `toggleLike`) works; do not implement the deprecated `toggleFavorite` legacy favorite APIs
 - [ ] Comment feed (if implemented) supports pagination and replies
 - [ ] Filters (if implemented) correctly emit `core` / `extern`
 

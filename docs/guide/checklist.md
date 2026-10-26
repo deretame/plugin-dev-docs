@@ -19,7 +19,7 @@
 
 ## 业务流程
 
-- [ ] 收藏/点赞流程（`toggleFavorite/toggleLike`）可用
+- [ ] 收藏/点赞流程（`startFavoriteAction`+`continueFavoriteAction`/`toggleLike`）可用；不要实现已废弃的 `toggleFavorite` 等旧版收藏 API
 - [ ] 评论流（若实现）支持分页和回复
 - [ ] 过滤器（若实现）能正确下发 `core/extern`
 
