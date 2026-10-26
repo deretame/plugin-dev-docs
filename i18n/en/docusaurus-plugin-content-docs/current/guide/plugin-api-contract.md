@@ -1276,10 +1276,11 @@ login page, which fetches the form via `getLoginBundle` → submit calls
 
 ### `getLoginBundle()` (types: `LoginBundleContract` / `LoginField` in kit)
 
-Returns the login form. Field `kind` is `text` / `password` / `multiline` for
-plain input, password input, and multi-line input (cookie / apiKey fit in a
-single- or multi-line text field). `data.values` holds prefilled values
-(prefill account only, leave password empty).
+Returns the login form. Field `kind` is `text` / `password` / `multiline` /
+`captcha-image` / `slider-captcha` for plain input, password input, multi-line
+input, image captcha, and puzzle slider (the host pops a verification dialog
+on submit; requires host 3.0.37+).
+`data.values` holds prefilled values (prefill account only, leave password empty).
 
 ```ts
 import type {
@@ -1319,13 +1320,30 @@ type LoginBundleContract = {
 
 type LoginField = {
   key: string;
-  kind?: "text" | "password" | "multiline";
+  kind?: "text" | "password" | "multiline" | "captcha-image" | "slider-captcha";
   label?: string;
   required?: boolean;
   placeholder?: string;
   help?: string;
+  captcha?: LoginCaptchaConfig;
+  slider?: LoginSliderConfig;
+};
+
+type LoginCaptchaConfig = {
+  fetchFnPath: string; // fetch fn, returns `{ imageBase64: string; mimeType?: string }`
+  refreshText?: string;
+};
+
+type LoginSliderConfig = {
+  createFnPath: string; // challenge fn, returns `{ token, bg, piece, y, w, h, s }` (bg/piece are dataURLs)
+  verifyFnPath: string; // verify fn, takes `{ token, x, track }` (track is `[t,x,y][]`), returns `{ pass }`
+  refreshText?: string;
 };
 ```
+
+Puzzle slider: the host calls `createFnPath` (with current form values) →
+dialog verification → `verifyFnPath` → puts the one-time `pass` into the
+field value on submit. Passes are one-time; retry on failure.
 
 On submit the host calls `action.fnPath` with the form values in `core.values`
 (read them with the kit `readLoginValues`). Login state persistence stays in

@@ -1376,8 +1376,9 @@ type UserInfoBundleContract = {
 
 ### `getLoginBundle()`（类型见 kit：`LoginBundleContract` / `LoginField`）
 
-返回登录表单。字段 `kind` 取 `text` / `password` / `multiline`，
-分别对应普通输入、密码框、多行输入（cookie / apiKey 用单行或多行文本即可）。
+返回登录表单。字段 `kind` 取 `text` / `password` / `multiline` /
+`captcha-image` / `slider-captcha`，分别对应普通输入、密码框、多行输入、
+图形验证码、拼图滑块（点登录后宿主自动弹窗验证，要求宿主 3.0.37+）。
 `data.values` 为回填值（建议只回填账号，密码留空）。
 
 ```ts
@@ -1417,13 +1418,30 @@ type LoginBundleContract = {
 
 type LoginField = {
   key: string;
-  kind?: "text" | "password" | "multiline";
+  kind?: "text" | "password" | "multiline" | "captcha-image" | "slider-captcha";
   label?: string;
   required?: boolean;
   placeholder?: string;
   help?: string;
+  captcha?: LoginCaptchaConfig;
+  slider?: LoginSliderConfig;
+};
+
+type LoginCaptchaConfig = {
+  fetchFnPath: string; // 取图函数，返回 `{ imageBase64: string; mimeType?: string }`
+  refreshText?: string;
+};
+
+type LoginSliderConfig = {
+  createFnPath: string; // 取题函数，返回 `{ token, bg, piece, y, w, h, s }`（bg/piece 为 dataURL）
+  verifyFnPath: string; // 验题函数，入参 `{ token, x, track }`（track 为 `[t,x,y][]`），返回 `{ pass }`
+  refreshText?: string;
 };
 ```
+
+拼图滑块：宿主调 `createFnPath` 取题（透传当前表单值）→ 弹窗验证 →
+调 `verifyFnPath` 验题 → 通过后把一次性 `pass` 放入该字段值随表单提交。
+`pass` 一次性，失败下次重验。
 
 提交时宿主调用 `action.fnPath`，表单值放在 `core.values` 中。登录态持久化
 由插件自己经 `pluginConfig` 完成，宿主不碰。登录函数可返回 `message?: string | null`
