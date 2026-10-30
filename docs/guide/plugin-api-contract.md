@@ -278,6 +278,43 @@ type ComicListItem = {
 
 `extern` 中会包含高级搜索选中的筛选项。
 
+`extern` 还是搜索书签的载体：用户在搜索结果页（右下按钮）存书签时，宿主记下
+`{ keyword, anchorComicId, anchorPage, extern }`（含当时的完整 `extern`）。
+点书签跳转时，宿主用记下的 `extern` 原样回放请求；落页后若锚点不在本页，
+会用响应 `extern` 里的 `nextUrl` 向后、或 `prevUrl` 向前逐页找回。
+
+#### 非页码分页如何适配搜索书签
+
+纯页码式分页（`page=N` 稳定，如 JM / Bika）无需任何处理：回放和找回都按
+`page` 重新请求，结果天然一致。
+
+URL 游标式分页（翻页靠服务端返回的下一页链接，如 E-hentai 的 `?next=`）需要
+多做两件事，否则书签跳转/找回会抓错页：
+
+1. **响应 `extern` 里带上三件套**：`currentUrl`（本页实际请求 URL）、
+   `nextUrl`（下一页 URL，无则空字符串）、`prevUrl`（上一页 URL，无则空字符串）。
+   宿主会把响应 `extern` 原样传回下一次请求，天然形成链条。
+2. **处理顶层 `isSearchAggregate`**：书签跳转回放那一次请求，宿主在 payload
+   顶层（`core`，不是 `extern`）带 `isSearchAggregate: true`，此时**直抓
+   `extern.currentUrl`**，不要按 `page` 拼 URL。平时翻页（`page > 1` 且带
+   `extern.nextUrl`）则抓 `extern.nextUrl`；首屏按关键词拼。标志只读顶层，
+   不要回写进响应 `extern`（宿主 core 标志本就不会进 extern）。
+
+```ts
+// 以 E-hentai 为例（URL 游标式）
+const isAggregate = payload.isSearchAggregate === true;
+const currentUrl = String(payload.extern?.currentUrl ?? "").trim();
+const nextUrl = String(payload.extern?.nextUrl ?? "").trim();
+const endpoint =
+  isAggregate && currentUrl
+    ? currentUrl // 书签回放：直抓记录的当前页
+    : page > 1 && nextUrl
+      ? nextUrl // 正常翻页：跟随游标
+      : buildSearchEndpoint(keyword, page); // 首屏
+// 响应 extern 回传三件套：
+// extern: { ...extern, currentUrl: endpoint, nextUrl, prevUrl }
+```
+
 ### `getComicDetail(payload)`（类型见 kit：`ComicDetailPayload` / `ComicDetailContract`）
 
 ```ts
