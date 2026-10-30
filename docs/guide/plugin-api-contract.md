@@ -237,6 +237,7 @@ type SearchComicPayload = {
   keyword?: string;
   page?: number;
   extern?: Record<string, unknown>;
+  isSearchAggregate?: boolean;
 };
 
 type SearchResultContract = {
@@ -278,27 +279,28 @@ type ComicListItem = {
 
 `extern` 中会包含高级搜索选中的筛选项。
 
-`extern` 还是搜索书签的载体：用户在搜索结果页（右下按钮）存书签时，宿主记下
-`{ keyword, anchorComicId, anchorPage, extern }`（含当时的完整 `extern`）。
-点书签跳转时，宿主用记下的 `extern` 原样回放请求；落页后若锚点不在本页，
-会用响应 `extern` 里的 `nextUrl` 向后、或 `prevUrl` 向前逐页找回。
+`extern` 是宿主原样透传的字段：请求带过去什么，响应就可以带回来什么，下一次
+请求又会原样传回。除了高级筛选值，插件也可以用它存任何自定义状态（分页游标、
+会话信息等），宿主不解读、不改写。
 
-#### 非页码分页如何适配搜索书签
+一个现成的用法是搜索书签：搜索结果页（右下按钮）存书签时，宿主会记下当时的
+`extern`；点书签跳转时会原样回放，落页后若锚点不在本页，还可以用响应 `extern`
+里的 `nextUrl` / `prevUrl` 逐页找回。所以翻页用的游标、当前页 URL 这类东西，
+都可以放在响应 `extern` 里带回来——下次请求自然就有。
 
-纯页码式分页（`page=N` 稳定，如 JM / Bika）无需任何处理：回放和找回都按
+#### 非页码分页也可以适配搜索书签
+
+纯页码式分页（`page=N` 稳定，如 JM / Bika）可以什么都不做：回放和找回都按
 `page` 重新请求，结果天然一致。
 
-URL 游标式分页（翻页靠服务端返回的下一页链接，如 E-hentai 的 `?next=`）需要
-多做两件事，否则书签跳转/找回会抓错页：
+URL 游标式分页（翻页靠服务端返回的下一页链接，如 E-hentai 的 `?next=`）如果想
+让书签跳转落在正确页，可以参考 E-hentai 的做法：
 
-1. **响应 `extern` 里带上三件套**：`currentUrl`（本页实际请求 URL）、
-   `nextUrl`（下一页 URL，无则空字符串）、`prevUrl`（上一页 URL，无则空字符串）。
-   宿主会把响应 `extern` 原样传回下一次请求，天然形成链条。
-2. **处理顶层 `isSearchAggregate`**：书签跳转回放那一次请求，宿主在 payload
-   顶层（`core`，不是 `extern`）带 `isSearchAggregate: true`，此时**直抓
-   `extern.currentUrl`**，不要按 `page` 拼 URL。平时翻页（`page > 1` 且带
-   `extern.nextUrl`）则抓 `extern.nextUrl`；首屏按关键词拼。标志只读顶层，
-   不要回写进响应 `extern`（宿主 core 标志本就不会进 extern）。
+1. 响应 `extern` 里带上 `currentUrl`（本页实际请求 URL）、`nextUrl`（下一页、
+   无则空字符串）、`prevUrl`（上一页、无则空字符串），形成链条。
+2. 书签回放那一次请求，宿主会在 payload 顶层带 `isSearchAggregate: true`
+   （见 kit `SearchComicPayload`，只读顶层即可），此时可以直抓
+   `extern.currentUrl`，而不按 `page` 拼 URL。
 
 ```ts
 // 以 E-hentai 为例（URL 游标式）
@@ -311,7 +313,7 @@ const endpoint =
     : page > 1 && nextUrl
       ? nextUrl // 正常翻页：跟随游标
       : buildSearchEndpoint(keyword, page); // 首屏
-// 响应 extern 回传三件套：
+// 响应 extern 回传：
 // extern: { ...extern, currentUrl: endpoint, nextUrl, prevUrl }
 ```
 

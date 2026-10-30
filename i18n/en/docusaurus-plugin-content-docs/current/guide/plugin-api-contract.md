@@ -232,6 +232,7 @@ type SearchComicPayload = {
   keyword?: string;
   page?: number;
   extern?: Record<string, unknown>;
+  isSearchAggregate?: boolean;
 };
 
 type SearchResultContract = {
@@ -272,6 +273,50 @@ type ComicListItem = {
 ```
 
 `extern` may include advanced search selections.
+
+`extern` is passed through verbatim by the host: whatever the request carries,
+the response can carry back, and the next request will carry it again. Besides
+filter selections, plugins can use it to keep any custom state (paging cursors,
+session info, …) — the host never reads or rewrites it.
+
+One ready-made use is search bookmarks: when the user saves a bookmark from the
+search result page (bottom-right button), the host records the `extern` at the
+time; tapping the bookmark replays it, and if the anchor is not on the landed
+page, the response `extern`'s `nextUrl` / `prevUrl` can be used to probe
+neighboring pages. So cursor links, current-page URLs and the like can all ride
+along in the response `extern` — the next request will have them.
+
+#### Non-page-number pagination can also support search bookmarks
+
+Pure page-number pagination (stable `page=N`, e.g. JM / Bika) can do nothing:
+replay and probing re-request by `page` and results are naturally consistent.
+
+URL-cursor pagination (next page via a server-returned link, e.g. E-hentai's
+`?next=`), if you want bookmark jumps to land on the right page, can follow the
+E-hentai example:
+
+1. Carry `currentUrl` (this page's actual request URL), `nextUrl` (next page,
+   empty string if none) and `prevUrl` (previous page, empty string if none) in
+   the response `extern`, forming the chain.
+2. On the bookmark replay request the host sets `isSearchAggregate: true` at the
+   payload top level (see kit `SearchComicPayload`, read the top level only) —
+   you can then fetch `extern.currentUrl` directly instead of building a URL
+   from `page`.
+
+```ts
+// E-hentai style (URL-cursor pagination)
+const isAggregate = payload.isSearchAggregate === true;
+const currentUrl = String(payload.extern?.currentUrl ?? "").trim();
+const nextUrl = String(payload.extern?.nextUrl ?? "").trim();
+const endpoint =
+  isAggregate && currentUrl
+    ? currentUrl // bookmark replay: fetch the recorded page directly
+    : page > 1 && nextUrl
+      ? nextUrl // normal paging: follow the cursor
+      : buildSearchEndpoint(keyword, page); // first screen
+// Echo back in the response extern:
+// extern: { ...extern, currentUrl: endpoint, nextUrl, prevUrl }
+```
 
 ### `getComicDetail(payload)` (types: `ComicDetailPayload` / `ComicDetailContract` in kit)
 
